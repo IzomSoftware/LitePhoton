@@ -1,0 +1,33 @@
+[package]
+name = "LitePhoton"
+version = "0.1.0"
+edition = "2024"
+description = "A blazingly fast text file/csv file/etc scanner."
+homepage = "https://SyNdicateFoundation.ir"
+repository = "https://github.com/SyNdicateFoundation/LitePhoton"
+readme = "README.md"
+license-file = "LICENSE"
+publish = true
+
+[lints.clippy]
+unwrap_used = "deny"
+
+[dependencies]
+clap = { version = "4.5.46", features = ["derive"] }
+log = "0.4.29"
+log4rs = "1.4.0-rc2"
+num_cpus = "1.17.0"
+rayon = "1.10.0"
+atty = "0.2.14"
+strum = "0.27.2"
+strum_macros = "0.27.2"
+memmap2 = "0.9.9"
+memchr = "2.7.5"
+
+[profile.release]
+strip = true
+lto = "fat"
+opt-level = "z"
+codegen-units = 1
+panic = "abort"
+debug = 0 ## true this only when flamegraph needed / or profiling
