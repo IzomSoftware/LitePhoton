@@ -3,10 +3,10 @@ name = "LitePhoton"
 version = "0.1.0"
 edition = "2024"
 description = "A blazingly fast text file/csv file/etc scanner."
-homepage = "https://SyNdicateFoundation.ir"
-repository = "https://github.com/SyNdicateFoundation/LitePhoton"
+homepage = "https://izom.net"
+repository = "https://github.com/IzomSoftware/LitePhoton"
 readme = "README.md"
-license-file = "LICENSE"
+license = "MIT"
 publish = true
 
 [lints.clippy]
