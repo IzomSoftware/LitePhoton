@@ -3,7 +3,7 @@ name = "example"
 edition = "2024"
 
 [dependencies]
-LitePhoton = {git = "https://github.com/SyNdicateFoundation/LitePhoton/"}
+LitePhoton = {git = "https://github.com/IzomSoftware/LitePhoton/"}
 
 [profile.release]
 codegen-units = 1
