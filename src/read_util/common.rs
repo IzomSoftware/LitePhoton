@@ -1,5 +1,4 @@
 use crate::input::Input;
-use crate::logger::log_error;
 use log::error;
 use memmap2::Mmap;
 use std::io::{BufWriter, Write};
@@ -20,7 +19,7 @@ where
     W: Sized + Write,
 {
     if writer.write_all(line).is_err() {
-        log_error("Cannot write_all console, platform restriction?")
+        error!("Cannot write_all console, platform restriction?")
     }
 }
 pub fn flush<W>(writer: &mut BufWriter<W>)
@@ -28,7 +27,7 @@ where
     W: Sized + Write,
 {
     if writer.flush().is_err() {
-        log_error("Cannot flush console, platform restriction?");
+        error!("Cannot flush console, platform restriction?");
     }
 }
 

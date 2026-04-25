@@ -1,11 +1,10 @@
-use crate::argument_parser::ARGUMENTS;
+use crate::argument_parser::{ARGUMENTS, Arguments};
 use crate::environment::{ENVIRONMENT, Environment};
 use crate::input::Input;
-use crate::logger::log_info;
 use crate::read_util::Mode;
+use log::info;
 use std::path::PathBuf;
 use std::str::FromStr;
-
 mod argument_parser;
 mod environment;
 mod input;
@@ -14,29 +13,31 @@ mod read_util;
 
 /// Entry point
 fn main() {
-    argument_parser::parse_arguments();
+    Arguments::setup();
 
-    Environment::setup(ARGUMENTS.get().expect("main.rs: Cannot get environment"));
+    Environment::setup(ARGUMENTS.get().expect("main.rs: Cannot get arguments"));
 
     let env = ENVIRONMENT.get().expect("main.rs: Cannot get environment");
 
-    logger::setup_logger(env.debug);
+    logger::setup_logger(env.debug).expect("main.rs:: Cannot setup logger");
 
-    log_info(&format!(
-        "Starting up LitePhoton with this environment: {:?}",
-        env
-    ));
+    info!("Starting up LitePhoton with this environment: {:?}", env);
 
-    for file in &env.file {
+    if !std::io::IsTerminal::is_terminal(&std::io::stdin()) && !env.bypass_stdin_check {
         read_util::read_input(
             Mode::from_str(&env.method).expect("main.rs: Provided mode not found"),
-            if !atty::is(atty::Stream::Stdin) && !env.bypass_stdin_check {
-                Input::Stdin(())
-            } else {
-                Input::File(PathBuf::from(file))
-            },
+            Input::Stdin(()),
             env.stable,
-            &env.keyword,
+            env.keyword.clone(),
         );
+    } else {
+        for file in &env.file {
+            read_util::read_input(
+                Mode::from_str(&env.method).expect("main.rs: Provided mode not found"),
+                Input::File(PathBuf::from(file)),
+                env.stable,
+                env.keyword.clone(),
+            );
+        }
     }
 }
