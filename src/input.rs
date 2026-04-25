@@ -1,8 +1,8 @@
-use crate::logger::log_error;
 use std::fs::{File, Metadata};
 use std::io;
 use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
+use log::error;
 
 pub enum Input {
     Stdin(()),
@@ -13,7 +13,7 @@ impl Input {
     pub fn open_file(&self) -> io::Result<File> {
         match self {
             Input::Stdin(_) => {
-                log_error("Cannot open_file stdin");
+                error!("Cannot open_file stdin");
                 Err(Error::new(
                     ErrorKind::InvalidInput,
                     "Cannot open_file stdin",
@@ -26,7 +26,7 @@ impl Input {
     pub fn metadata(&self) -> io::Result<Metadata> {
         match self {
             Input::Stdin(_) => {
-                log_error("Cannot metadata stdin");
+                error!("Cannot metadata stdin");
                 Err(Error::new(ErrorKind::InvalidInput, "Cannot metadata stdin"))
             }
             Input::File(f) => f.metadata(),
