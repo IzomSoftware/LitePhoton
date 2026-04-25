@@ -6,7 +6,7 @@ use log4rs::append::console::ConsoleAppender;
 use log4rs::config::{Appender, Root};
 use log4rs::encode::pattern::PatternEncoder;
 
-pub fn setup_logger(debug: bool) -> Result<bool, Box<dyn error::Error>> {
+pub fn setup_logger(debug: bool) -> Result<(), Box<dyn error::Error>> {
     let level = if debug {
         LevelFilter::Debug
     } else {
@@ -30,5 +30,5 @@ pub fn setup_logger(debug: bool) -> Result<bool, Box<dyn error::Error>> {
         config
     )?;
 
-    Ok(true)
+    Ok(())
 }

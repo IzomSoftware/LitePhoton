@@ -1,40 +1,29 @@
 use crate::input::Input;
-use log::error;
 use memmap2::Mmap;
 use std::io::{BufWriter, Write};
 
-pub fn map_file(input: Input) -> std::io::Result<Mmap> {
-    match unsafe { Mmap::map(&input.open_file()?) } {
-        Ok(mmap) => Ok(mmap),
-        Err(err) => {
-            error!("Failed to memory map the file. please, check the error below:");
-            error!("{}", err);
-            panic!("Failed to memory map the file. please, check the error below:");
-        }
-    }
+pub unsafe fn map_file(input: Input) -> std::io::Result<Mmap> {
+    unsafe { Mmap::map(&input.open_file()?) }
 }
 
-pub fn write_all<W>(writer: &mut BufWriter<W>, line: &[u8])
+pub fn write_all<W>(writer: &mut BufWriter<W>, line: &[u8]) -> std::io::Result<()>
 where
     W: Sized + Write,
 {
-    if writer.write_all(line).is_err() {
-        error!("Cannot write_all console, platform restriction?")
-    }
+    Ok(writer.write_all(line)?)
 }
-pub fn flush<W>(writer: &mut BufWriter<W>)
+pub fn flush<W>(writer: &mut BufWriter<W>) -> std::io::Result<()>
 where
     W: Sized + Write,
 {
-    if writer.flush().is_err() {
-        error!("Cannot flush console, platform restriction?");
-    }
+    Ok(writer.flush()?)
 }
 
-pub fn fail<W>(writer: &mut BufWriter<W>, line: &[u8])
+pub fn fail<W>(writer: &mut BufWriter<W>, line: &[u8]) -> std::io::Result<()>
 where
     W: Sized + Write,
 {
-    write_all(writer, line);
-    flush(writer);
+    write_all(writer, line)?;
+    flush(writer)?;
+    Ok(())
 }

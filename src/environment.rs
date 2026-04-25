@@ -22,10 +22,9 @@ impl Environment {
             method: args.method.clone(),
         }
     }
-    pub fn setup(args: &Arguments) {
+    pub fn setup(args: &Arguments) -> Result<(), Environment> {
         ENVIRONMENT
             .set(Self::get(args))
-            .expect("environment.rs: cannot set ENVIRONMENT. already initialized?");
     }
 }
 
