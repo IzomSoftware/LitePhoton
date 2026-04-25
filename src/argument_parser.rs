@@ -1,5 +1,5 @@
 use clap::Parser;
-use std::sync::OnceLock;
+use std::{sync::OnceLock};
 
 #[derive(Parser, Debug)]
 pub struct Arguments {
@@ -28,10 +28,9 @@ impl Arguments {
         self
     }
 
-    pub fn setup() {
+    pub fn setup() -> Result<(), Arguments> {
         ARGUMENTS
             .set(Arguments::parse().lowercase())
-            .expect("argument_parser.rs: Cannot set ARGUMENTS. already initialized?");
     }
 }
 

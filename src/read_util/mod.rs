@@ -3,8 +3,8 @@ mod common;
 use crate::input::Input;
 use crate::read_util::common::{fail, map_file, write_all};
 use log::error;
-use std::cmp;
-use std::io::{BufReader, BufWriter, ErrorKind, Read, stdin, stdout};
+use std::{cmp, error};
+use std::io::{BufReader, BufWriter, Read, stdin, stdout};
 use std::sync::Arc;
 use strum_macros::EnumString;
 
@@ -17,7 +17,7 @@ pub enum Mode {
     Chunk,
 }
 
-pub fn read_stdin(keyword: &[u8]) {
+pub fn read_stdin(keyword: &[u8]) -> Result<(), Box<dyn error::Error>> {
     let mut writer = BufWriter::new(stdout());
     let mut reader = BufReader::with_capacity(8 * 1024, stdin());
     let mut read_buff = [0u8; 8 * 1024];
@@ -32,12 +32,12 @@ pub fn read_stdin(keyword: &[u8]) {
                     let line = &line_buff[..];
 
                     if keyword.is_empty() || memchr::memmem::find(line, keyword).is_some() {
-                        write_all(&mut writer, line);
+                        write_all(&mut writer, line)?;
                     }
 
-                    fail(&mut writer, b"\n");
+                    fail(&mut writer, b"\n")?;
                 }
-                fail(&mut writer, b"");
+                fail(&mut writer, b"")?;
                 break;
             }
             Ok(size) => {
@@ -48,7 +48,7 @@ pub fn read_stdin(keyword: &[u8]) {
                         let line = &line_buff[begin..=i];
 
                         if keyword.is_empty() || memchr::memmem::find(line, keyword).is_some() {
-                            write_all(&mut writer, line);
+                            write_all(&mut writer, line)?;
                         }
 
                         begin = i + 1;
@@ -67,23 +67,25 @@ pub fn read_stdin(keyword: &[u8]) {
                 }
             }
             Err(_) => {
-                fail(&mut writer, b"");
+                fail(&mut writer, b"")?;
                 break;
             }
         }
     }
+
+    Ok(())
 }
 
-pub fn read_file(keyword: &[u8], input: Input) {
+pub unsafe fn read_file(keyword: &[u8], input: Input) -> Result<(), Box<dyn error::Error>> {
     let mut writer = BufWriter::new(stdout());
-    let mmap = map_file(input).expect("read_util/mod.rs: Cannot map file to memory");
+    let mmap = unsafe { map_file(input)? };
     let mut begin = 0usize;
     let mut i = 0usize;
 
     while i <= mmap.len() {
         match memchr::memchr(b'\n', &mmap[i..]) {
             Some(0) => {
-                fail(&mut writer, b"");
+                fail(&mut writer, b"")?;
                 break;
             }
             Some(pos) => {
@@ -91,7 +93,7 @@ pub fn read_file(keyword: &[u8], input: Input) {
                 let line = &mmap[begin..=end];
 
                 if keyword.is_empty() || memchr::memmem::find(line, keyword).is_some() {
-                    write_all(&mut writer, line);
+                    write_all(&mut writer, line)?;
                 }
 
                 begin = end + 1;
@@ -102,19 +104,21 @@ pub fn read_file(keyword: &[u8], input: Input) {
                     let line = &mmap[begin..];
 
                     if keyword.is_empty() || memchr::memmem::find(line, keyword).is_some() {
-                        write_all(&mut writer, line);
-                        fail(&mut writer, b"\n");
+                        write_all(&mut writer, line)?;
+                        fail(&mut writer, b"\n")?;
                     }
                 }
 
-                fail(&mut writer, b"");
+                fail(&mut writer, b"")?;
                 break;
             }
         }
     }
+
+    Ok(())
 }
 
-pub fn read_file_chunk(keyword: &[u8], input: Input) {
+pub unsafe fn read_file_chunk(keyword: &[u8], input: Input) -> Result<(), Box<dyn error::Error>> {
     let input = match input {
         Input::File(file) => Input::File(file),
         Input::Stdin(_) => {
@@ -123,10 +127,9 @@ pub fn read_file_chunk(keyword: &[u8], input: Input) {
         }
     };
     let file_size = input
-        .metadata()
-        .expect("read_util/mod.rs: Cannot get file metadata")
+        .metadata()?
         .len();
-    let mmap = map_file(input).expect("read_util/mod.rs: Cannot map file to memory");
+    let mmap = unsafe { map_file(input)? };
     let mmap = Arc::new(mmap);
     let num_workers = num_cpus::get().max(1) as u64;
     let chunk_size = if file_size == 0 {
@@ -158,7 +161,7 @@ pub fn read_file_chunk(keyword: &[u8], input: Input) {
                 while pos < end {
                     match memchr::memchr(b'\n', &mmap[pos..end]) {
                         Some(0) => {
-                            fail(&mut writer, b"");
+                            fail(&mut writer, b"").expect("");
                             break;
                         }
                         Some(size) => {
@@ -167,7 +170,7 @@ pub fn read_file_chunk(keyword: &[u8], input: Input) {
 
                             if keyword.is_empty() || memchr::memmem::find(line, &keyword).is_some()
                             {
-                                write_all(&mut writer, line);
+                                write_all(&mut writer, line).expect("");
                             }
 
                             pos = end;
@@ -179,7 +182,7 @@ pub fn read_file_chunk(keyword: &[u8], input: Input) {
                                 && (keyword.is_empty()
                                     || memchr::memmem::find(slice, &keyword).is_some())
                             {
-                                fail(&mut writer, slice);
+                                fail(&mut writer, slice).expect("");
                             }
 
                             break;
@@ -187,41 +190,30 @@ pub fn read_file_chunk(keyword: &[u8], input: Input) {
                     }
                 }
 
-                fail(&mut writer, b"\n");
+                fail(&mut writer, b"\n").expect("");
             });
         }
     });
+
+    Ok(())
 }
 
-pub fn read_input(mode: Mode, input: Input, _stable: bool, keyword: String) {
+pub unsafe fn read_input(mode: Mode, input: Input, _stable: bool, keyword: String) -> Result<(), Box<dyn error::Error>> {
     let keyword = keyword.as_bytes();
 
     match input {
         // Use BufReader with stdin
         Input::Stdin(_) => {
-            read_stdin(keyword);
+            read_stdin(keyword)
         }
         // Use MemMap2 with with the file
         Input::File(_) => {
-            if let Err(err) = input.metadata()
-                && (err.kind() == ErrorKind::NotFound
-                    || err.kind() == ErrorKind::PermissionDenied
-                    || err.kind() == ErrorKind::IsADirectory)
-            {
-                error!(
-                    "Failed to open the file. please, either check file permissions, or either specify a file with -f."
-                );
-                panic!(
-                    "Failed to open the file. please, either check file permissions, or either specify a file with -f."
-                );
-            }
-
             match mode {
                 Mode::Normal => {
-                    read_file(keyword, input);
+                    unsafe { read_file(keyword, input) }
                 }
                 Mode::Chunk => {
-                    read_file_chunk(keyword, input);
+                    unsafe { read_file_chunk(keyword, input) }
                 }
             }
         }

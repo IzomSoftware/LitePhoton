@@ -13,9 +13,10 @@ mod read_util;
 
 /// Entry point
 fn main() {
-    Arguments::setup();
+    Arguments::setup().expect("Couldn't parse args");
 
-    Environment::setup(ARGUMENTS.get().expect("main.rs: Cannot get arguments"));
+    Environment::setup(ARGUMENTS.get().expect("main.rs: Cannot get arguments"))
+            .expect("environment.rs: cannot set ENVIRONMENT. already initialized?");
 
     let env = ENVIRONMENT.get().expect("main.rs: Cannot get environment");
 
@@ -24,20 +25,24 @@ fn main() {
     info!("Starting up LitePhoton with this environment: {:?}", env);
 
     if !std::io::IsTerminal::is_terminal(&std::io::stdin()) && !env.bypass_stdin_check {
-        read_util::read_input(
-            Mode::from_str(&env.method).expect("main.rs: Provided mode not found"),
-            Input::Stdin(()),
-            env.stable,
-            env.keyword.clone(),
-        );
-    } else {
-        for file in &env.file {
+        unsafe {
             read_util::read_input(
                 Mode::from_str(&env.method).expect("main.rs: Provided mode not found"),
-                Input::File(PathBuf::from(file)),
+                Input::Stdin(()),
                 env.stable,
                 env.keyword.clone(),
-            );
+            ).expect("Couldn't read stdin")
+        };
+    } else {
+        for file in &env.file {
+            unsafe {
+                read_util::read_input(
+                    Mode::from_str(&env.method).expect("main.rs: Provided mode not found"),
+                    Input::File(PathBuf::from(file)),
+                    env.stable,
+                    env.keyword.clone(),
+                ).expect("Couldn't read file");
+            }
         }
     }
 }

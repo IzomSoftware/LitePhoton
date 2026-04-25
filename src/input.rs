@@ -2,7 +2,6 @@ use std::fs::{File, Metadata};
 use std::io;
 use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
-use log::error;
 
 pub enum Input {
     Stdin(()),
@@ -13,11 +12,7 @@ impl Input {
     pub fn open_file(&self) -> io::Result<File> {
         match self {
             Input::Stdin(_) => {
-                error!("Cannot open_file stdin");
-                Err(Error::new(
-                    ErrorKind::InvalidInput,
-                    "Cannot open_file stdin",
-                ))
+                Err(Error::from(ErrorKind::InvalidInput))
             }
             Input::File(f) => File::open(f),
         }
@@ -26,8 +21,7 @@ impl Input {
     pub fn metadata(&self) -> io::Result<Metadata> {
         match self {
             Input::Stdin(_) => {
-                error!("Cannot metadata stdin");
-                Err(Error::new(ErrorKind::InvalidInput, "Cannot metadata stdin"))
+                Err(Error::from(ErrorKind::InvalidInput))
             }
             Input::File(f) => f.metadata(),
         }
