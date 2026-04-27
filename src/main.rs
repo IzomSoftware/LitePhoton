@@ -1,7 +1,7 @@
 use crate::argument_parser::{ARGUMENTS, Arguments};
 use crate::environment::{ENVIRONMENT, Environment};
 use crate::input::Input;
-use crate::read_util::Mode;
+use crate::read_util::common::Mode;
 use log::info;
 use std::path::PathBuf;
 use std::str::FromStr;

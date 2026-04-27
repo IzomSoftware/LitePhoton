@@ -22,6 +22,7 @@ strum = "0.27.2"
 strum_macros = "0.27.2"
 memmap2 = "0.9.9"
 memchr = "2.7.5"
+thiserror = "2.0.18"
 
 [profile.release]
 strip = true
