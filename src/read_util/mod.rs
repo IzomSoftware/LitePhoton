@@ -150,15 +150,15 @@ pub unsafe fn read_file_chunk(
                 }
 
                 if end < mmap_size {
-                    if let Some(b) = memchr::memchr(b'\n', &mmap[end as usize..]) {
+                    if let Some(b) = memchr::memchr(b'\n', &mmap[end..]) {
                         end += b + 1;
                     } else {
                         end = mmap_size;
                     }
                 }
 
-                while begin < end as usize {
-                    match memchr::memchr(b'\n', &mmap[begin..end as usize]) {
+                while begin < end {
+                    match memchr::memchr(b'\n', &mmap[begin..end]) {
                         Some(0) => {
                             break;
                         }
@@ -174,7 +174,7 @@ pub unsafe fn read_file_chunk(
                             begin = end;
                         }
                         None => {
-                            let line = &mmap[begin..end as usize];
+                            let line = &mmap[begin..end];
 
                             if !line.is_empty()
                                 && (keyword.is_empty()
