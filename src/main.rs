@@ -12,10 +12,10 @@ mod input;
 mod logger;
 /// Entry point
 fn main() {
-    Arguments::setup().expect("Couldn't parse args");
+    Arguments::setup().expect("main.rs: Couldn't parse args");
 
     Environment::setup(ARGUMENTS.get().expect("main.rs: Cannot get arguments"))
-        .expect("environment.rs: cannot set ENVIRONMENT. already initialized?");
+        .expect("main.rs: cannot set ENVIRONMENT. already initialized?");
 
     let env = ENVIRONMENT.get().expect("main.rs: Cannot get environment");
 
