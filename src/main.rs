@@ -32,7 +32,7 @@ fn main() {
                     env.stable,
                     env.keyword.clone(),
                 )
-                .expect("Couldn't read stdin")
+                .expect("main.rs: Couldn't read stdin")
             };
         } else {
             for file in &env.file {
@@ -43,7 +43,7 @@ fn main() {
                         env.stable,
                         env.keyword.clone(),
                     )
-                    .expect("Couldn't read file");
+                    .expect("main.rs: Couldn't read file");
                 }
             }
         }
@@ -55,7 +55,7 @@ fn main() {
                 env.stable,
                 env.keyword.clone(),
             )
-            .expect("Couldn't read stdin")
+            .expect("main.rs: Couldn't read stdin")
         };
         let results = input::get_input::dedup_normal(lines);
         for line in results {
@@ -70,7 +70,7 @@ fn main() {
                     env.stable,
                     env.keyword.clone(),
                 )
-                .expect("Couldn't read file")
+                .expect("main.rs: Couldn't read file")
             };
             let results = input::get_input::dedup_normal(lines);
             for line in results {
