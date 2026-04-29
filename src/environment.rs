@@ -6,9 +6,9 @@ pub struct Environment {
     pub debug: bool,
     pub bypass_stdin_check: bool,
     pub stable: bool,
+    pub dedup: bool,
     pub file: Vec<String>,
     pub keyword: String,
-    pub dedup: bool,
     pub method: String,
 }
 
@@ -18,9 +18,9 @@ impl Environment {
             debug: args.debug,
             bypass_stdin_check: args.bypass_stdin_check,
             stable: args.stable,
+            dedup: args.dedup,
             file: args.file.clone(),
             keyword: args.keyword.clone(),
-            dedup: args.dedup,
             method: args.method.clone(),
         }
     }

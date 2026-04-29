@@ -1,5 +1,5 @@
 use crate::argument_parser::{ARGUMENTS, Arguments};
-use crate::common::Mode;
+use crate::common::Method;
 use crate::environment::{ENVIRONMENT, Environment};
 use crate::input::Input;
 use log::info;
@@ -27,7 +27,7 @@ fn main() {
         if !std::io::IsTerminal::is_terminal(&std::io::stdin()) && !env.bypass_stdin_check {
             unsafe {
                 input::print_input::input(
-                    Mode::from_str(&env.method).expect("main.rs: Provided mode not found"),
+                    Method::from_str(&env.method).expect("main.rs: Provided mode not found"),
                     Input::Stdin(()),
                     env.stable,
                     env.keyword.clone(),
@@ -38,7 +38,7 @@ fn main() {
             for file in &env.file {
                 unsafe {
                     input::print_input::input(
-                        Mode::from_str(&env.method).expect("main.rs: Provided mode not found"),
+                        Method::from_str(&env.method).expect("main.rs: Provided mode not found"),
                         Input::File(PathBuf::from(file)),
                         env.stable,
                         env.keyword.clone(),
@@ -51,7 +51,7 @@ fn main() {
         if !std::io::IsTerminal::is_terminal(&std::io::stdin()) && !env.bypass_stdin_check {
             let lines = unsafe {
                 input::get_input::input(
-                    Mode::from_str(&env.method).expect("main.rs: Provided mode not found"),
+                    Method::from_str(&env.method).expect("main.rs: Provided mode not found"),
                     Input::Stdin(()),
                     env.stable,
                     env.keyword.clone(),
@@ -66,7 +66,7 @@ fn main() {
             for file in &env.file {
                 let lines = unsafe {
                     input::get_input::input(
-                        Mode::from_str(&env.method).expect("main.rs: Provided mode not found"),
+                        Method::from_str(&env.method).expect("main.rs: Provided mode not found"),
                         Input::File(PathBuf::from(file)),
                         env.stable,
                         env.keyword.clone(),
