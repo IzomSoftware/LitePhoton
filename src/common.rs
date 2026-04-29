@@ -16,9 +16,10 @@ pub enum ReadInputError{
 /// Uses strum lib to convert Enums into Strings and parse them
 #[derive(Debug, PartialEq, EnumString)]
 #[strum(serialize_all = "lowercase")]
-pub enum Mode {
-    Normal,
-    Chunk,
+pub enum Method {
+    Simple,
+    Rayon,
+    StdThread,
 }
 
 pub fn create_buf_write<W>(inner: W) -> BufWriter<W>
@@ -31,9 +32,9 @@ where R: Sized + Read,
 {
     BufReader::with_capacity(64 * 1024, inner)
 }
-pub fn create_line_buf() -> Vec<u8> {
-    Vec::with_capacity(4 * 1024)
-}
+// pub fn create_line_buf() -> Vec<u8> {
+//     Vec::with_capacity(4 * 1024)
+// }
 pub unsafe fn map_file(input: Input) -> std::io::Result<Mmap> {
     unsafe { Mmap::map(&input.open_file()?) }
 }
