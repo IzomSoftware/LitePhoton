@@ -1,6 +1,10 @@
 use crate::input::Input;
 use memmap2::Mmap;
-use std::io::{BufReader, BufWriter, Read, Write};
+use regex::bytes::Regex;
+use std::{
+    error,
+    io::{BufReader, BufWriter, Read, Write},
+};
 use strum_macros::EnumString;
 use thiserror::Error;
 
@@ -57,6 +61,17 @@ where
 {
     writer.flush()
 }
-pub fn check_line(line: &[u8], keyword: &[u8]) -> bool {
-    keyword.is_empty() || memchr::memmem::find(line, keyword).is_some()
+pub fn check_line(
+    line: &[u8],
+    keyword: &[u8],
+    regex: &[u8],
+) -> Result<bool, Box<dyn error::Error>> {
+    let regex_result = if regex.is_empty() {
+        true
+    } else {
+        let new_regex = Regex::new(String::from_utf8_lossy(regex).into_owned().as_str())?;
+        Regex::is_match(&new_regex, line)
+    };
+
+    Ok((keyword.is_empty() || memchr::memmem::find(line, keyword).is_some()) && regex_result)
 }

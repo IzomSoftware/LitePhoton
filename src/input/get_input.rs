@@ -5,7 +5,7 @@ use std::io::Read;
 use std::sync::{Arc, Mutex};
 use std::{error, io, thread};
 
-pub fn stdin_normal(keyword: &[u8]) -> Result<Vec<String>, Box<dyn error::Error>> {
+pub fn stdin_normal(keyword: &[u8], regex: &[u8]) -> Result<Vec<String>, Box<dyn error::Error>> {
     let mut results: Vec<String> = vec![];
     let mut reader = create_read_buf(io::stdin());
     let mut line_buff = Vec::with_capacity(4 * 1024);
@@ -19,7 +19,7 @@ pub fn stdin_normal(keyword: &[u8]) -> Result<Vec<String>, Box<dyn error::Error>
                 if !line_buff.is_empty() {
                     let line = &line_buff[..];
 
-                    if check_line(line, keyword) {
+                    if check_line(line, keyword, regex)? {
                         results.push(String::from_utf8_lossy(line).into());
                     }
                 }
@@ -32,7 +32,7 @@ pub fn stdin_normal(keyword: &[u8]) -> Result<Vec<String>, Box<dyn error::Error>
                     if line_buff[i] == b'\n' {
                         let line = &line_buff[begin..i];
 
-                        if check_line(line, keyword) {
+                        if check_line(line, keyword, regex)? {
                             results.push(String::from_utf8_lossy(line).into());
                         }
 
@@ -66,6 +66,7 @@ pub fn stdin_normal(keyword: &[u8]) -> Result<Vec<String>, Box<dyn error::Error>
 */
 pub unsafe fn file_normal(
     keyword: &[u8],
+    regex: &[u8],
     input: Input,
 ) -> Result<Vec<String>, Box<dyn error::Error>> {
     let mut results: Vec<String> = vec![];
@@ -88,7 +89,7 @@ pub unsafe fn file_normal(
                 let end = i + pos;
                 let line = &mmap[begin..end];
 
-                if check_line(line, keyword) {
+                if check_line(line, keyword, regex)? {
                     results.push(String::from_utf8_lossy(line).into());
                 }
 
@@ -99,7 +100,7 @@ pub unsafe fn file_normal(
                 if begin < mmap.len() {
                     let line = &mmap[begin..];
 
-                    if check_line(line, keyword) {
+                    if check_line(line, keyword, regex)? {
                         results.push(String::from_utf8_lossy(line).into());
                     }
                 }
@@ -117,6 +118,7 @@ pub unsafe fn file_normal(
 */
 pub unsafe fn file_chunk_rayon(
     keyword: &[u8],
+    regex: &[u8],
     input: Input,
 ) -> Result<Vec<String>, Box<dyn error::Error>> {
     let input = match input {
@@ -134,14 +136,18 @@ pub unsafe fn file_chunk_rayon(
     let mmap = &mmap[..];
 
     mmap.split(|&b| b == b'\n')
-        .filter(|line| check_line(line, keyword))
+        .filter(|line| check_line(line, keyword, regex).expect(""))
         .for_each(|line| {
-            let mut lock = results.lock().expect("input/get_input.rs: Lock is poisoned");
+            let mut lock = results
+                .lock()
+                .expect("input/get_input.rs: Lock is poisoned");
             lock.push(String::from_utf8_lossy(line).into());
             drop(lock);
         });
 
-    let lock = results.lock().expect("input/get_input.rs: Lock is poisoned");
+    let lock = results
+        .lock()
+        .expect("input/get_input.rs: Lock is poisoned");
     let vec = lock.to_vec();
     drop(lock);
     Ok(vec)
@@ -153,6 +159,7 @@ pub unsafe fn file_chunk_rayon(
 */
 pub unsafe fn file_chunk_std(
     keyword: &[u8],
+    regex: &[u8],
     input: Input,
     num_workers: usize,
 ) -> Result<Vec<String>, Box<dyn error::Error>> {
@@ -211,8 +218,10 @@ pub unsafe fn file_chunk_std(
                                 let end = begin + size;
                                 let line = &mmap[begin..end];
 
-                                if check_line(line, &keyword) {
-                                    let mut lock = results.lock().expect("input/get_input.rs: Lock is poisoned");
+                                if check_line(line, &keyword, &regex).expect("") {
+                                    let mut lock = results
+                                        .lock()
+                                        .expect("input/get_input.rs: Lock is poisoned");
                                     lock.push(String::from_utf8_lossy(line).into());
                                     drop(lock);
                                 }
@@ -223,9 +232,12 @@ pub unsafe fn file_chunk_std(
                                 let line = &mmap[begin..end];
 
                                 if !line.is_empty()
-                                    && (keyword.is_empty() || check_line(line, &keyword))
+                                    && (keyword.is_empty()
+                                        || check_line(line, &keyword, &regex).expect(""))
                                 {
-                                    let mut lock = results.lock().expect("input/get_input.rs: Lock is poisoned");
+                                    let mut lock = results
+                                        .lock()
+                                        .expect("input/get_input.rs: Lock is poisoned");
                                     lock.push(String::from_utf8_lossy(line).into());
                                     drop(lock);
                                 }
@@ -239,7 +251,9 @@ pub unsafe fn file_chunk_std(
         }
     });
 
-    let lock = results.lock().expect("input/get_input.rs: Lock is poisoned");
+    let lock = results
+        .lock()
+        .expect("input/get_input.rs: Lock is poisoned");
     let vec = lock.to_vec();
     drop(lock);
     Ok(vec)
@@ -260,18 +274,20 @@ pub unsafe fn input(
     input: Input,
     #[allow(unused)] stable: bool,
     keyword: String,
+    regex: String,
 ) -> Result<Vec<String>, Box<dyn error::Error>> {
     let keyword = keyword.as_bytes();
+    let regex = regex.as_bytes();
 
     match input {
         // Use BufReader with stdin
-        Input::Stdin(_) => stdin_normal(keyword),
+        Input::Stdin(_) => stdin_normal(keyword, regex),
         // Use MemMap2 with with files
         Input::File(_) => match method {
-            Method::Simple => unsafe { file_normal(keyword, input) },
-            Method::Rayon => unsafe { file_chunk_rayon(keyword, input) },
+            Method::Simple => unsafe { file_normal(keyword, regex, input) },
+            Method::Rayon => unsafe { file_chunk_rayon(keyword, regex, input) },
             Method::StdThread => unsafe {
-                file_chunk_std(keyword, input, rayon::current_num_threads())
+                file_chunk_std(keyword, regex, input, rayon::current_num_threads())
             },
         },
     }

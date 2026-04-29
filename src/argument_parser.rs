@@ -17,6 +17,8 @@ pub struct Arguments {
     pub file: Vec<String>,
     #[arg(short, long, default_value = "")]
     pub keyword: String,
+    #[arg(short, long, default_value = "")]
+    pub regex: String,
     #[arg(short, long, default_value = "rayon")]
     pub method: String,
     // unnecessary because tty is different from stdin
