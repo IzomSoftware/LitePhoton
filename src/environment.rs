@@ -25,8 +25,7 @@ impl Environment {
         }
     }
     pub fn setup(args: &Arguments) -> Result<(), Environment> {
-        ENVIRONMENT
-            .set(Self::get(args))
+        ENVIRONMENT.set(Self::get(args))
     }
 }
 

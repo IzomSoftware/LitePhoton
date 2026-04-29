@@ -34,7 +34,7 @@ LitePhoton is a command-line tool that can be used to search for a specific keyw
 ./LitePhoton -f <file_path> -k <keyword>
 ```
 
-You can also specify the search method using the `-m` option. The available methods are `chunk` and `normal`.
+You can also specify the search method using the `-m` option. The available methods are `rayon`, `stdthread` and `simple`.
 
 ```
 ./LitePhoton -f <file_path> -k <keyword> -m <method>

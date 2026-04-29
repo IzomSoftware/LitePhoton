@@ -60,6 +60,10 @@ pub fn stdin_normal(keyword: &[u8]) -> Result<Vec<String>, Box<dyn error::Error>
     Ok(results)
 }
 
+/**
+ * # Safety
+ * Memory mapping a file is not a safe thing to do
+*/
 pub unsafe fn file_normal(
     keyword: &[u8],
     input: Input,
@@ -107,6 +111,10 @@ pub unsafe fn file_normal(
     Ok(results)
 }
 
+/**
+ * # Safety
+ * Memory mapping a file is not a safe thing to do
+*/
 pub unsafe fn file_chunk_rayon(
     keyword: &[u8],
     input: Input,
@@ -128,17 +136,21 @@ pub unsafe fn file_chunk_rayon(
     mmap.split(|&b| b == b'\n')
         .filter(|line| check_line(line, keyword))
         .for_each(|line| {
-            let mut lock = results.lock().unwrap();
+            let mut lock = results.lock().expect("input/get_input.rs: Lock is poisoned");
             lock.push(String::from_utf8_lossy(line).into());
             drop(lock);
         });
 
-    let lock = results.lock().unwrap();
+    let lock = results.lock().expect("input/get_input.rs: Lock is poisoned");
     let vec = lock.to_vec();
     drop(lock);
     Ok(vec)
 }
 
+/**
+ * # Safety
+ * Memory mapping a file is not a safe thing to do
+*/
 pub unsafe fn file_chunk_std(
     keyword: &[u8],
     input: Input,
@@ -200,7 +212,7 @@ pub unsafe fn file_chunk_std(
                                 let line = &mmap[begin..end];
 
                                 if check_line(line, &keyword) {
-                                    let mut lock = results.lock().unwrap();
+                                    let mut lock = results.lock().expect("input/get_input.rs: Lock is poisoned");
                                     lock.push(String::from_utf8_lossy(line).into());
                                     drop(lock);
                                 }
@@ -213,7 +225,7 @@ pub unsafe fn file_chunk_std(
                                 if !line.is_empty()
                                     && (keyword.is_empty() || check_line(line, &keyword))
                                 {
-                                    let mut lock = results.lock().unwrap();
+                                    let mut lock = results.lock().expect("input/get_input.rs: Lock is poisoned");
                                     lock.push(String::from_utf8_lossy(line).into());
                                     drop(lock);
                                 }
@@ -227,7 +239,7 @@ pub unsafe fn file_chunk_std(
         }
     });
 
-    let lock = results.lock().unwrap();
+    let lock = results.lock().expect("input/get_input.rs: Lock is poisoned");
     let vec = lock.to_vec();
     drop(lock);
     Ok(vec)
@@ -239,11 +251,14 @@ pub fn dedup_normal(lines: Vec<String>) -> Vec<String> {
     vec
 }
 
+/**
+ * # Safety
+ * Memory mapping a file is not a safe thing to do
+*/
 pub unsafe fn input(
     method: Method,
     input: Input,
-    #[allow(unused)]
-    stable: bool,
+    #[allow(unused)] stable: bool,
     keyword: String,
 ) -> Result<Vec<String>, Box<dyn error::Error>> {
     let keyword = keyword.as_bytes();

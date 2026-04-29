@@ -47,36 +47,34 @@ fn main() {
                 }
             }
         }
+    } else if !std::io::IsTerminal::is_terminal(&std::io::stdin()) && !env.bypass_stdin_check {
+        let lines = unsafe {
+            input::get_input::input(
+                Method::from_str(&env.method).expect("main.rs: Provided mode not found"),
+                Input::Stdin(()),
+                env.stable,
+                env.keyword.clone(),
+            )
+            .expect("Couldn't read stdin")
+        };
+        let results = input::get_input::dedup_normal(lines);
+        for line in results {
+            println!("{line}")
+        }
     } else {
-        if !std::io::IsTerminal::is_terminal(&std::io::stdin()) && !env.bypass_stdin_check {
+        for file in &env.file {
             let lines = unsafe {
                 input::get_input::input(
                     Method::from_str(&env.method).expect("main.rs: Provided mode not found"),
-                    Input::Stdin(()),
+                    Input::File(PathBuf::from(file)),
                     env.stable,
                     env.keyword.clone(),
                 )
-                .expect("Couldn't read stdin")
+                .expect("Couldn't read file")
             };
             let results = input::get_input::dedup_normal(lines);
             for line in results {
-                println!("{line}")
-            }
-        } else {
-            for file in &env.file {
-                let lines = unsafe {
-                    input::get_input::input(
-                        Method::from_str(&env.method).expect("main.rs: Provided mode not found"),
-                        Input::File(PathBuf::from(file)),
-                        env.stable,
-                        env.keyword.clone(),
-                    )
-                    .expect("Couldn't read file")
-                };
-                let results = input::get_input::dedup_normal(lines);
-                for line in results {
-                    println!("{line}");
-                }
+                println!("{line}");
             }
         }
     }

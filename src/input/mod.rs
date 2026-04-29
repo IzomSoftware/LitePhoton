@@ -2,8 +2,8 @@ use std::fs::{File, Metadata};
 use std::io;
 use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
-pub mod print_input;
 pub mod get_input;
+pub mod print_input;
 pub enum Input {
     Stdin(()),
     File(PathBuf),
@@ -12,18 +12,14 @@ pub enum Input {
 impl Input {
     pub fn open_file(&self) -> io::Result<File> {
         match self {
-            Input::Stdin(_) => {
-                Err(Error::from(ErrorKind::InvalidInput))
-            }
+            Input::Stdin(_) => Err(Error::from(ErrorKind::InvalidInput)),
             Input::File(f) => File::open(f),
         }
     }
 
     pub fn metadata(&self) -> io::Result<Metadata> {
         match self {
-            Input::Stdin(_) => {
-                Err(Error::from(ErrorKind::InvalidInput))
-            }
+            Input::Stdin(_) => Err(Error::from(ErrorKind::InvalidInput)),
             Input::File(f) => f.metadata(),
         }
     }
