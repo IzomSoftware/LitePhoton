@@ -8,6 +8,7 @@ pub struct Environment {
     pub stable: bool,
     pub file: Vec<String>,
     pub keyword: String,
+    pub dedup: bool,
     pub method: String,
 }
 
@@ -19,6 +20,7 @@ impl Environment {
             stable: args.stable,
             file: args.file.clone(),
             keyword: args.keyword.clone(),
+            dedup: args.dedup,
             method: args.method.clone(),
         }
     }

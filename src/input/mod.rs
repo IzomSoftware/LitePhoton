@@ -2,7 +2,8 @@ use std::fs::{File, Metadata};
 use std::io;
 use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
-
+pub mod print_input;
+pub mod get_input;
 pub enum Input {
     Stdin(()),
     File(PathBuf),
