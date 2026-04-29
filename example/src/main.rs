@@ -1,12 +1,12 @@
 use std::path::PathBuf;
 use LitePhoton::input::Input;
-use LitePhoton::read_util;
-use LitePhoton::read_util::Mode;
+use LitePhoton::print_input;
+use LitePhoton::print_input::Mode;
 
 fn main() {
     let input = Input::File(
         PathBuf::from("./test_run/test.txt")
     );
 
-    read_util::read_input(Mode::Chunk, input, true, "test");
+    print_input::read_input(Mode::Chunk, input, true, "test");
 }
