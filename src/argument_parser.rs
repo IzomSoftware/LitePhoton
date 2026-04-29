@@ -1,5 +1,5 @@
 use clap::Parser;
-use std::{sync::OnceLock};
+use std::sync::OnceLock;
 
 #[derive(Parser, Debug)]
 pub struct Arguments {
@@ -31,8 +31,7 @@ impl Arguments {
     }
 
     pub fn setup() -> Result<(), Arguments> {
-        ARGUMENTS
-            .set(Arguments::parse().lowercase())
+        ARGUMENTS.set(Arguments::parse().lowercase())
     }
 }
 

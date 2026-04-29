@@ -14,21 +14,19 @@ pub fn setup_logger(debug: bool) -> Result<(), Box<dyn error::Error>> {
     };
 
     let config = Config::builder()
-            .appender(
-                Appender::builder().build(
-                    "stdout",
-                    Box::new(
-                        ConsoleAppender::builder()
-                            .encoder(Box::new(PatternEncoder::new("[LitePhoton] {l} {m}\n")))
-                            .build(),
-                    ),
+        .appender(
+            Appender::builder().build(
+                "stdout",
+                Box::new(
+                    ConsoleAppender::builder()
+                        .encoder(Box::new(PatternEncoder::new("[LitePhoton] {l} {m}\n")))
+                        .build(),
                 ),
-            )
-            .build(Root::builder().appender("stdout").build(level))?;
+            ),
+        )
+        .build(Root::builder().appender("stdout").build(level))?;
 
-    log4rs::init_config(
-        config
-    )?;
+    log4rs::init_config(config)?;
 
     Ok(())
 }

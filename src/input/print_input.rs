@@ -68,6 +68,10 @@ pub fn stdin_normal(keyword: &[u8]) -> Result<(), Box<dyn error::Error>> {
     Ok(())
 }
 
+/**
+ * # Safety
+ * Memory mapping a file is not a safe thing to do
+*/
 pub unsafe fn file_normal(keyword: &[u8], input: Input) -> Result<(), Box<dyn error::Error>> {
     let input = match input {
         Input::File(file) => Input::File(file),
@@ -115,6 +119,10 @@ pub unsafe fn file_normal(keyword: &[u8], input: Input) -> Result<(), Box<dyn er
     Ok(())
 }
 
+/**
+ * # Safety
+ * Memory mapping a file is not a safe thing to do
+*/
 pub unsafe fn file_chunk_rayon(keyword: &[u8], input: Input) -> Result<(), Box<dyn error::Error>> {
     let input = match input {
         Input::File(file) => Input::File(file),
@@ -134,13 +142,21 @@ pub unsafe fn file_chunk_rayon(keyword: &[u8], input: Input) -> Result<(), Box<d
         .filter(|line| check_line(line, keyword))
         .for_each(|line| {
             let mut writer = create_buf_write(io::stdout());
-            writer.write_all(line).unwrap();
-            writer.write_all(b"\n").unwrap();
+            writer
+                .write_all(line)
+                .expect("input/print_input.rs: Couldn't write to stdout");
+            writer
+                .write_all(b"\n")
+                .expect("input/print_input.rs: Couldn't write to stdout");
         });
 
     Ok(())
 }
 
+/**
+ * # Safety
+ * Memory mapping a file is not a safe thing to do
+*/
 pub unsafe fn file_chunk_std(
     keyword: &[u8],
     input: Input,
@@ -227,11 +243,14 @@ pub unsafe fn file_chunk_std(
     Ok(())
 }
 
+/**
+ * # Safety
+ * Memory mapping a file is not a safe thing to do
+*/
 pub unsafe fn input(
     method: Method,
     input: Input,
-    #[allow(unused)]
-    stable: bool,
+    #[allow(unused)] stable: bool,
     keyword: String,
 ) -> Result<(), Box<dyn error::Error>> {
     let keyword = keyword.as_bytes();
@@ -241,11 +260,18 @@ pub unsafe fn input(
         Input::Stdin(_) => stdin_normal(keyword),
         // Use MemMap2 with with files
         Input::File(_) => match method {
-            Method::Simple => unsafe { file_normal(keyword, input) },
-            Method::Rayon => unsafe { file_chunk_rayon(keyword, input) },
-            Method::StdThread => unsafe {
-                file_chunk_std(keyword, input, rayon::current_num_threads())
-            },
+            Method::Simple =>
+            // # Safety
+            // Memory mapping a file is not a fail safe thing to do
+            unsafe { file_normal(keyword, input) },
+            Method::Rayon =>
+            // # Safety
+            // Memory mapping a file is not a fail safe thing to do
+            unsafe { file_chunk_rayon(keyword, input) },
+            Method::StdThread =>
+            // # Safety
+            // Memory mapping a file is not a fail safe thing to do
+            unsafe { file_chunk_std(keyword, input, rayon::current_num_threads()) },
         },
     }
 }
