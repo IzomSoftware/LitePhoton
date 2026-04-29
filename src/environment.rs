@@ -9,6 +9,7 @@ pub struct Environment {
     pub dedup: bool,
     pub file: Vec<String>,
     pub keyword: String,
+    pub regex: String,
     pub method: String,
 }
 
@@ -21,6 +22,7 @@ impl Environment {
             dedup: args.dedup,
             file: args.file.clone(),
             keyword: args.keyword.clone(),
+            regex: args.regex.clone(),
             method: args.method.clone(),
         }
     }

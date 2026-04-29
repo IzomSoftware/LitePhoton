@@ -9,7 +9,7 @@ use std::io::{Read, Write};
 use std::sync::Arc;
 use std::{error, io, thread};
 
-pub fn stdin_normal(keyword: &[u8]) -> Result<(), Box<dyn error::Error>> {
+pub fn stdin_normal(keyword: &[u8], regex: &[u8]) -> Result<(), Box<dyn error::Error>> {
     let mut writer = create_buf_write(io::stdout());
     let mut reader = create_read_buf(io::stdin());
     let mut line_buff = Vec::with_capacity(4 * 1024);
@@ -23,7 +23,7 @@ pub fn stdin_normal(keyword: &[u8]) -> Result<(), Box<dyn error::Error>> {
                 if !line_buff.is_empty() {
                     let line = &line_buff[..];
 
-                    if check_line(line, keyword) {
+                    if check_line(line, keyword, regex)? {
                         write_all(&mut writer, line)?;
                         write_all(&mut writer, b"\n")?;
                     }
@@ -39,7 +39,7 @@ pub fn stdin_normal(keyword: &[u8]) -> Result<(), Box<dyn error::Error>> {
                     if line_buff[i] == b'\n' {
                         let line = &line_buff[begin..=i];
 
-                        if check_line(line, keyword) {
+                        if check_line(line, keyword, regex)? {
                             write_all(&mut writer, line)?;
                         }
 
@@ -72,7 +72,11 @@ pub fn stdin_normal(keyword: &[u8]) -> Result<(), Box<dyn error::Error>> {
  * # Safety
  * Memory mapping a file is not a safe thing to do
 */
-pub unsafe fn file_normal(keyword: &[u8], input: Input) -> Result<(), Box<dyn error::Error>> {
+pub unsafe fn file_normal(
+    keyword: &[u8],
+    regex: &[u8],
+    input: Input,
+) -> Result<(), Box<dyn error::Error>> {
     let input = match input {
         Input::File(file) => Input::File(file),
         Input::Stdin(_) => {
@@ -93,7 +97,7 @@ pub unsafe fn file_normal(keyword: &[u8], input: Input) -> Result<(), Box<dyn er
                 let end = i + pos;
                 let line = &mmap[begin..=end];
 
-                if check_line(line, keyword) {
+                if check_line(line, keyword, regex)? {
                     write_all(&mut writer, line)?;
                 }
 
@@ -104,7 +108,7 @@ pub unsafe fn file_normal(keyword: &[u8], input: Input) -> Result<(), Box<dyn er
                 if begin < mmap.len() {
                     let line = &mmap[begin..];
 
-                    if check_line(line, keyword) {
+                    if check_line(line, keyword, regex)? {
                         write_all(&mut writer, line)?;
                         write_all(&mut writer, b"\n")?;
                     }
@@ -123,7 +127,11 @@ pub unsafe fn file_normal(keyword: &[u8], input: Input) -> Result<(), Box<dyn er
  * # Safety
  * Memory mapping a file is not a safe thing to do
 */
-pub unsafe fn file_chunk_rayon(keyword: &[u8], input: Input) -> Result<(), Box<dyn error::Error>> {
+pub unsafe fn file_chunk_rayon(
+    keyword: &[u8],
+    regex: &[u8],
+    input: Input,
+) -> Result<(), Box<dyn error::Error>> {
     let input = match input {
         Input::File(file) => Input::File(file),
         Input::Stdin(_) => {
@@ -139,7 +147,7 @@ pub unsafe fn file_chunk_rayon(keyword: &[u8], input: Input) -> Result<(), Box<d
 
     mmap.split(|&b| b == b'\n')
         .par_bridge()
-        .filter(|line| check_line(line, keyword))
+        .filter(|line| check_line(line, keyword, regex).expect(""))
         .for_each(|line| {
             let mut writer = create_buf_write(io::stdout());
             writer
@@ -159,6 +167,7 @@ pub unsafe fn file_chunk_rayon(keyword: &[u8], input: Input) -> Result<(), Box<d
 */
 pub unsafe fn file_chunk_std(
     keyword: &[u8],
+    regex: &[u8],
     input: Input,
     num_workers: usize,
 ) -> Result<(), Box<dyn error::Error>> {
@@ -175,10 +184,12 @@ pub unsafe fn file_chunk_std(
     let mmap = unsafe { map_file(input)? };
     let mmap = Arc::new(mmap);
     let keyword: Arc<&[u8]> = Arc::new(keyword);
+    let regex: Arc<&[u8]> = Arc::new(regex);
 
     thread::scope(move |scope| {
         for id in 0..num_workers {
             let keyword = keyword.clone();
+            let regex = regex.clone();
             let mmap = mmap.clone();
             let mmap_size = mmap.len();
             let chunk_size = mmap_size / num_workers;
@@ -214,7 +225,7 @@ pub unsafe fn file_chunk_std(
                             let end = begin + size;
                             let line = &mmap[begin..=end];
 
-                            if check_line(line, &keyword) {
+                            if check_line(line, &keyword, &regex).expect("") {
                                 write_all(&mut writer, line).expect("");
                             }
 
@@ -224,7 +235,8 @@ pub unsafe fn file_chunk_std(
                             let line = &mmap[begin..end];
 
                             if !line.is_empty()
-                                && (keyword.is_empty() || check_line(line, &keyword))
+                                && (keyword.is_empty()
+                                    || check_line(line, &keyword, &regex).expect(""))
                             {
                                 write_all(&mut writer, line).expect("");
                                 write_all(&mut writer, b"\n").expect("");
@@ -252,26 +264,28 @@ pub unsafe fn input(
     input: Input,
     #[allow(unused)] stable: bool,
     keyword: String,
+    regex: String,
 ) -> Result<(), Box<dyn error::Error>> {
     let keyword = keyword.as_bytes();
+    let regex = regex.as_bytes();
 
     match input {
         // Use BufReader with stdin
-        Input::Stdin(_) => stdin_normal(keyword),
+        Input::Stdin(_) => stdin_normal(keyword, regex),
         // Use MemMap2 with with files
         Input::File(_) => match method {
             Method::Simple =>
             // # Safety
             // Memory mapping a file is not a fail safe thing to do
-            unsafe { file_normal(keyword, input) },
+            unsafe { file_normal(keyword, regex, input) },
             Method::Rayon =>
             // # Safety
             // Memory mapping a file is not a fail safe thing to do
-            unsafe { file_chunk_rayon(keyword, input) },
+            unsafe { file_chunk_rayon(keyword, regex, input) },
             Method::StdThread =>
             // # Safety
             // Memory mapping a file is not a fail safe thing to do
-            unsafe { file_chunk_std(keyword, input, rayon::current_num_threads()) },
+            unsafe { file_chunk_std(keyword, regex, input, rayon::current_num_threads()) },
         },
     }
 }

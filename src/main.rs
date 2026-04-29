@@ -31,6 +31,7 @@ fn main() {
                     Input::Stdin(()),
                     env.stable,
                     env.keyword.clone(),
+                    env.regex.clone(),
                 )
                 .expect("main.rs: Couldn't read stdin")
             };
@@ -42,6 +43,7 @@ fn main() {
                         Input::File(PathBuf::from(file)),
                         env.stable,
                         env.keyword.clone(),
+                        env.regex.clone(),
                     )
                     .expect("main.rs: Couldn't read file");
                 }
@@ -54,6 +56,7 @@ fn main() {
                 Input::Stdin(()),
                 env.stable,
                 env.keyword.clone(),
+                env.regex.clone(),
             )
             .expect("main.rs: Couldn't read stdin")
         };
@@ -69,6 +72,7 @@ fn main() {
                     Input::File(PathBuf::from(file)),
                     env.stable,
                     env.keyword.clone(),
+                    env.regex.clone(),
                 )
                 .expect("main.rs: Couldn't read file")
             };
