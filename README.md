@@ -28,16 +28,51 @@ You can also download binaries available on Github page, without requiring you t
 
 ## Getting Started 🚧
 
-LitePhoton is a command-line tool that can be used to search for a specific keyword in a file. To use it, run the following command:
+LitePhoton is a command-line tool that can be used to print out contents of a file, or search for a specific keyword in a file. To use it, run the following command:
 
+```
+./LitePhoton -f <file_path>
+```
+the command would print out file contents to stdout (Standard Output).
+
+You can also specify the search method using the `-m` option. The available methods are `rayon`, `stdthread` and `simple`.
+the rayon method provides concurrency by rayon library, stdthread provides concurrency by Rust's standard library and simple provides basic search without any kind of concurrency. note that, you can pipe input into LitePhoton. An example could be the cat command.
+
+Example with searching a file for a specific keyword:
 ```
 ./LitePhoton -f <file_path> -k <keyword>
 ```
 
-You can also specify the search method using the `-m` option. The available methods are `rayon`, `stdthread` and `simple`.
-
+Example with searching a file for a specific regex:
 ```
-./LitePhoton -f <file_path> -k <keyword> -m <method>
+./LitePhoton -f <file_path> -r <regex>
+```
+
+Example with deduplicating a file:
+```
+./LitePhoton -f <file_path> --dedup
+```
+
+Example with searching stdin (Standard Input) (Piped or whatever) for a keyword:
+```
+cat file.txt | ./LitePhoton -k <keyword>
+```
+
+Example with searching stdin (Standard Input) (Piped or whatever) with regex:
+```
+cat file.txt | ./LitePhoton -r <regex>
+```
+
+Example with changing the method:
+```
+./LitePhoton -f <file> -m simple -k <keyword>
+```
+
+Other arguments are:
+```
+--debug -> to enable logging
+--dedup -> to dedup a file
+--stable -> to provide the stable functionality
 ```
 ## A brief comparison
 # Test details
