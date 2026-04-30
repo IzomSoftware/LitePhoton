@@ -21,13 +21,21 @@ pub fn stdin_normal(keyword: &[u8], regex: &[u8]) -> Result<Vec<String>, Box<dyn
                 if !line_buff.is_empty() {
                     let line = &line_buff[..];
 
-                    if let Some(result) = check_keyword(line, keyword) {
-                        results.push(String::from_utf8_lossy(result).into());
+                    if keyword.is_empty() && regex.is_empty() {
+                        results.push(String::from_utf8_lossy(line).into());
                     }
 
-                    if let Some(regex_results) = check_regex(line, regex)? {
-                        for result in regex_results {
+                    if !keyword.is_empty() {
+                        if let Some(result) = check_keyword(line, keyword) {
                             results.push(String::from_utf8_lossy(result).into());
+                        }
+                    }
+
+                    if !regex.is_empty() {
+                        if let Some(regex_results) = check_regex(line, regex)? {
+                            for result in regex_results {
+                                results.push(String::from_utf8_lossy(result).into());
+                            }
                         }
                     }
                 }
@@ -40,13 +48,21 @@ pub fn stdin_normal(keyword: &[u8], regex: &[u8]) -> Result<Vec<String>, Box<dyn
                     if line_buff[i] == b'\n' {
                         let line = &line_buff[begin..i];
 
-                        if let Some(result) = check_keyword(line, keyword) {
-                            results.push(String::from_utf8_lossy(result).into());
+                        if keyword.is_empty() && regex.is_empty() {
+                            results.push(String::from_utf8_lossy(line).into());
                         }
 
-                        if let Some(regex_results) = check_regex(line, regex)? {
-                            for result in regex_results {
+                        if !keyword.is_empty() {
+                            if let Some(result) = check_keyword(line, keyword) {
                                 results.push(String::from_utf8_lossy(result).into());
+                            }
+                        }
+
+                        if !regex.is_empty() {
+                            if let Some(regex_results) = check_regex(line, regex)? {
+                                for result in regex_results {
+                                    results.push(String::from_utf8_lossy(result).into());
+                                }
                             }
                         }
 
@@ -103,15 +119,24 @@ pub unsafe fn file_normal(
                 let end = i + pos;
                 let line = &mmap[begin..end];
 
-                if let Some(result) = check_keyword(line, keyword) {
-                    results.push(String::from_utf8_lossy(result).into());
+                if keyword.is_empty() && regex.is_empty() {
+                    results.push(String::from_utf8_lossy(line).into());
                 }
 
-                if let Some(regex_results) = check_regex(line, regex)? {
-                    for result in regex_results {
+                if !keyword.is_empty() {
+                    if let Some(result) = check_keyword(line, keyword) {
                         results.push(String::from_utf8_lossy(result).into());
                     }
                 }
+
+                if !regex.is_empty() {
+                    if let Some(regex_results) = check_regex(line, regex)? {
+                        for result in regex_results {
+                            results.push(String::from_utf8_lossy(result).into());
+                        }
+                    }
+                }
+
                 begin = end + 1;
                 i = begin;
             }
@@ -119,13 +144,21 @@ pub unsafe fn file_normal(
                 if begin < mmap.len() {
                     let line = &mmap[begin..];
 
-                    if let Some(result) = check_keyword(line, keyword) {
-                        results.push(String::from_utf8_lossy(result).into());
+                    if keyword.is_empty() && regex.is_empty() {
+                        results.push(String::from_utf8_lossy(line).into());
                     }
 
-                    if let Some(regex_results) = check_regex(line, regex)? {
-                        for result in regex_results {
+                    if !keyword.is_empty() {
+                        if let Some(result) = check_keyword(line, keyword) {
                             results.push(String::from_utf8_lossy(result).into());
+                        }
+                    }
+
+                    if !regex.is_empty() {
+                        if let Some(regex_results) = check_regex(line, regex)? {
+                            for result in regex_results {
+                                results.push(String::from_utf8_lossy(result).into());
+                            }
                         }
                     }
                 }
@@ -162,12 +195,20 @@ pub unsafe fn file_chunk_rayon(
 
     mmap.split(|&b| b == b'\n')
         .filter_map(|line| {
-            if let Some(result) = check_keyword(line, keyword) {
-                return Some(vec![result]);
+            if keyword.is_empty() && regex.is_empty() {
+                return Some(vec![line]);
             }
 
-            if let Ok(Some(results)) = check_regex(line, regex) {
-                return Some(results);
+            if !keyword.is_empty() {
+                if let Some(result) = check_keyword(line, keyword) {
+                    return Some(vec![result]);
+                }
+            }
+
+            if !regex.is_empty() {
+                if let Ok(Some(results)) = check_regex(line, regex) {
+                    return Some(results);
+                }
             }
 
             None
@@ -254,48 +295,58 @@ pub unsafe fn file_chunk_std(
                             Some(size) => {
                                 let end = begin + size;
                                 let line = &mmap[begin..end];
+                                let mut lock = results
+                                    .lock()
+                                    .expect("input/get_input.rs: Lock is poisoned");
 
-                                if let Some(result) = check_keyword(line, &keyword) {
-                                    let mut lock = results
-                                        .lock()
-                                        .expect("input/get_input.rs: Lock is poisoned");
-                                    lock.push(String::from_utf8_lossy(result).into());
-                                    drop(lock);
+                                if keyword.is_empty() && regex.is_empty() {
+                                    lock.push(String::from_utf8_lossy(line).into());
                                 }
 
-                                if let Ok(Some(regex_results)) = check_regex(line, regex) {
-                                    let mut lock = results
-                                        .lock()
-                                        .expect("input/get_input.rs: Lock is poisoned");
-                                    for result in regex_results {
+                                if !keyword.is_empty() {
+                                    if let Some(result) = check_keyword(line, &keyword) {
                                         lock.push(String::from_utf8_lossy(result).into());
                                     }
-                                    drop(lock);
                                 }
+
+                                if !regex.is_empty() {
+                                    if let Ok(Some(regex_results)) = check_regex(line, regex) {
+                                        for result in regex_results {
+                                            lock.push(String::from_utf8_lossy(result).into());
+                                        }
+                                    }
+                                }
+
+                                drop(lock);
 
                                 begin = end + 1;
                             }
                             None => {
                                 let line = &mmap[begin..end];
+                                let mut lock = results
+                                    .lock()
+                                    .expect("input/get_input.rs: Lock is poisoned");
 
                                 if !line.is_empty() {
-                                    if let Some(result) = check_keyword(line, &keyword) {
-                                        let mut lock = results
-                                            .lock()
-                                            .expect("input/get_input.rs: Lock is poisoned");
-                                        lock.push(String::from_utf8_lossy(result).into());
-                                        drop(lock);
+                                    if keyword.is_empty() && regex.is_empty() {
+                                        lock.push(String::from_utf8_lossy(line).into());
                                     }
 
-                                    if let Ok(Some(regex_results)) = check_regex(line, regex) {
-                                        let mut lock = results
-                                            .lock()
-                                            .expect("input/get_input.rs: Lock is poisoned");
-                                        for result in regex_results {
+                                    if !keyword.is_empty() {
+                                        if let Some(result) = check_keyword(line, &keyword) {
                                             lock.push(String::from_utf8_lossy(result).into());
                                         }
-                                        drop(lock);
                                     }
+
+                                    if !regex.is_empty() {
+                                        if let Ok(Some(regex_results)) = check_regex(line, regex) {
+                                            for result in regex_results {
+                                                lock.push(String::from_utf8_lossy(result).into());
+                                            }
+                                        }
+                                    }
+
+                                    drop(lock);
                                 }
 
                                 break;
