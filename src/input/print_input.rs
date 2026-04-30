@@ -1,8 +1,8 @@
 use rayon::iter::{ParallelBridge, ParallelIterator};
 
 use crate::common::{
-    Method, ReadInputError, check_line, create_buf_write, create_read_buf, flush, map_file,
-    write_all,
+    Method, ReadInputError, check_keyword, check_regex, create_buf_write, create_read_buf, flush,
+    map_file, write_all,
 };
 use crate::input::Input;
 use std::io::{Read, Write};
@@ -23,9 +23,16 @@ pub fn stdin_normal(keyword: &[u8], regex: &[u8]) -> Result<(), Box<dyn error::E
                 if !line_buff.is_empty() {
                     let line = &line_buff[..];
 
-                    if check_line(line, keyword, regex)? {
-                        write_all(&mut writer, line)?;
+                    if let Some(result) = check_keyword(line, keyword) {
+                        write_all(&mut writer, result)?;
                         write_all(&mut writer, b"\n")?;
+                    }
+
+                    if let Some(results) = check_regex(line, regex)? {
+                        for result in results {
+                            write_all(&mut writer, result)?;
+                            write_all(&mut writer, b"\n")?;
+                        }
                     }
                 }
 
@@ -39,8 +46,14 @@ pub fn stdin_normal(keyword: &[u8], regex: &[u8]) -> Result<(), Box<dyn error::E
                     if line_buff[i] == b'\n' {
                         let line = &line_buff[begin..=i];
 
-                        if check_line(line, keyword, regex)? {
-                            write_all(&mut writer, line)?;
+                        if let Some(result) = check_keyword(line, keyword) {
+                            write_all(&mut writer, result)?;
+                        }
+
+                        if let Some(results) = check_regex(line, regex)? {
+                            for result in results {
+                                write_all(&mut writer, result)?;
+                            }
                         }
 
                         begin = i + 1;
@@ -97,8 +110,15 @@ pub unsafe fn file_normal(
                 let end = i + pos;
                 let line = &mmap[begin..=end];
 
-                if check_line(line, keyword, regex)? {
-                    write_all(&mut writer, line)?;
+                if let Some(result) = check_keyword(line, keyword) {
+                    write_all(&mut writer, result)?;
+                }
+
+                if let Some(results) = check_regex(line, regex)? {
+                    for result in results {
+                        write_all(&mut writer, result)?;
+                        write_all(&mut writer, b"\n")?;
+                    }
                 }
 
                 begin = end + 1;
@@ -108,9 +128,16 @@ pub unsafe fn file_normal(
                 if begin < mmap.len() {
                     let line = &mmap[begin..];
 
-                    if check_line(line, keyword, regex)? {
-                        write_all(&mut writer, line)?;
+                    if let Some(result) = check_keyword(line, keyword) {
+                        write_all(&mut writer, result)?;
                         write_all(&mut writer, b"\n")?;
+                    }
+
+                    if let Some(results) = check_regex(line, regex)? {
+                        for result in results {
+                            write_all(&mut writer, result)?;
+                            write_all(&mut writer, b"\n")?;
+                        }
                     }
                 }
 
@@ -147,15 +174,28 @@ pub unsafe fn file_chunk_rayon(
 
     mmap.split(|&b| b == b'\n')
         .par_bridge()
-        .filter(|line| check_line(line, keyword, regex).expect(""))
-        .for_each(|line| {
+        .filter_map(|line| {
+            if let Some(result) = check_keyword(line, keyword) {
+                return Some(vec![result]);
+            }
+
+            if let Ok(Some(results)) = check_regex(line, regex) {
+                return Some(results);
+            }
+
+            None
+        })
+        .for_each(|lines| {
             let mut writer = create_buf_write(io::stdout());
-            writer
-                .write_all(line)
-                .expect("input/print_input.rs: Couldn't write to stdout");
-            writer
-                .write_all(b"\n")
-                .expect("input/print_input.rs: Couldn't write to stdout");
+
+            for line in lines {
+                writer
+                    .write_all(line)
+                    .expect("input/print_input.rs: Couldn't write to stdout");
+                writer
+                    .write_all(b"\n")
+                    .expect("input/print_input.rs: Couldn't write to stdout");
+            }
         });
 
     Ok(())
@@ -225,8 +265,14 @@ pub unsafe fn file_chunk_std(
                             let end = begin + size;
                             let line = &mmap[begin..=end];
 
-                            if check_line(line, &keyword, &regex).expect("") {
-                                write_all(&mut writer, line).expect("");
+                            if let Some(result) = check_keyword(line, &keyword) {
+                                write_all(&mut writer, result).expect("");
+                            }
+
+                            if let Ok(Some(results)) = check_regex(line, &regex) {
+                                for result in results {
+                                    write_all(&mut writer, result).expect("");
+                                }
                             }
 
                             begin = end;
@@ -235,10 +281,9 @@ pub unsafe fn file_chunk_std(
                             let line = &mmap[begin..end];
 
                             if !line.is_empty()
-                                && (keyword.is_empty()
-                                    || check_line(line, &keyword, &regex).expect(""))
+                                && let Some(result) = check_keyword(line, &keyword)
                             {
-                                write_all(&mut writer, line).expect("");
+                                write_all(&mut writer, result).expect("");
                                 write_all(&mut writer, b"\n").expect("");
                             }
 

@@ -1,4 +1,6 @@
-use crate::common::{Method, ReadInputError, check_line, create_read_buf, map_file};
+use crate::common::{
+    Method, ReadInputError, check_keyword, check_regex, create_read_buf, map_file,
+};
 use crate::input::Input;
 use std::collections::HashSet;
 use std::io::Read;
@@ -19,8 +21,14 @@ pub fn stdin_normal(keyword: &[u8], regex: &[u8]) -> Result<Vec<String>, Box<dyn
                 if !line_buff.is_empty() {
                     let line = &line_buff[..];
 
-                    if check_line(line, keyword, regex)? {
-                        results.push(String::from_utf8_lossy(line).into());
+                    if let Some(result) = check_keyword(line, keyword) {
+                        results.push(String::from_utf8_lossy(result).into());
+                    }
+
+                    if let Some(regex_results) = check_regex(line, regex)? {
+                        for result in regex_results {
+                            results.push(String::from_utf8_lossy(result).into());
+                        }
                     }
                 }
                 break;
@@ -32,8 +40,14 @@ pub fn stdin_normal(keyword: &[u8], regex: &[u8]) -> Result<Vec<String>, Box<dyn
                     if line_buff[i] == b'\n' {
                         let line = &line_buff[begin..i];
 
-                        if check_line(line, keyword, regex)? {
-                            results.push(String::from_utf8_lossy(line).into());
+                        if let Some(result) = check_keyword(line, keyword) {
+                            results.push(String::from_utf8_lossy(result).into());
+                        }
+
+                        if let Some(regex_results) = check_regex(line, regex)? {
+                            for result in regex_results {
+                                results.push(String::from_utf8_lossy(result).into());
+                            }
                         }
 
                         begin = i + 1;
@@ -89,10 +103,15 @@ pub unsafe fn file_normal(
                 let end = i + pos;
                 let line = &mmap[begin..end];
 
-                if check_line(line, keyword, regex)? {
-                    results.push(String::from_utf8_lossy(line).into());
+                if let Some(result) = check_keyword(line, keyword) {
+                    results.push(String::from_utf8_lossy(result).into());
                 }
 
+                if let Some(regex_results) = check_regex(line, regex)? {
+                    for result in regex_results {
+                        results.push(String::from_utf8_lossy(result).into());
+                    }
+                }
                 begin = end + 1;
                 i = begin;
             }
@@ -100,8 +119,14 @@ pub unsafe fn file_normal(
                 if begin < mmap.len() {
                     let line = &mmap[begin..];
 
-                    if check_line(line, keyword, regex)? {
-                        results.push(String::from_utf8_lossy(line).into());
+                    if let Some(result) = check_keyword(line, keyword) {
+                        results.push(String::from_utf8_lossy(result).into());
+                    }
+
+                    if let Some(regex_results) = check_regex(line, regex)? {
+                        for result in regex_results {
+                            results.push(String::from_utf8_lossy(result).into());
+                        }
                     }
                 }
                 break;
@@ -136,12 +161,24 @@ pub unsafe fn file_chunk_rayon(
     let mmap = &mmap[..];
 
     mmap.split(|&b| b == b'\n')
-        .filter(|line| check_line(line, keyword, regex).expect(""))
-        .for_each(|line| {
+        .filter_map(|line| {
+            if let Some(result) = check_keyword(line, keyword) {
+                return Some(vec![result]);
+            }
+
+            if let Ok(Some(results)) = check_regex(line, regex) {
+                return Some(results);
+            }
+
+            None
+        })
+        .for_each(|lines| {
             let mut lock = results
                 .lock()
                 .expect("input/get_input.rs: Lock is poisoned");
-            lock.push(String::from_utf8_lossy(line).into());
+            for line in lines {
+                lock.push(String::from_utf8_lossy(line).into());
+            }
             drop(lock);
         });
 
@@ -218,11 +255,21 @@ pub unsafe fn file_chunk_std(
                                 let end = begin + size;
                                 let line = &mmap[begin..end];
 
-                                if check_line(line, &keyword, &regex).expect("") {
+                                if let Some(result) = check_keyword(line, &keyword) {
                                     let mut lock = results
                                         .lock()
                                         .expect("input/get_input.rs: Lock is poisoned");
-                                    lock.push(String::from_utf8_lossy(line).into());
+                                    lock.push(String::from_utf8_lossy(result).into());
+                                    drop(lock);
+                                }
+
+                                if let Ok(Some(regex_results)) = check_regex(line, regex) {
+                                    let mut lock = results
+                                        .lock()
+                                        .expect("input/get_input.rs: Lock is poisoned");
+                                    for result in regex_results {
+                                        lock.push(String::from_utf8_lossy(result).into());
+                                    }
                                     drop(lock);
                                 }
 
@@ -231,15 +278,24 @@ pub unsafe fn file_chunk_std(
                             None => {
                                 let line = &mmap[begin..end];
 
-                                if !line.is_empty()
-                                    && (keyword.is_empty()
-                                        || check_line(line, &keyword, &regex).expect(""))
-                                {
-                                    let mut lock = results
-                                        .lock()
-                                        .expect("input/get_input.rs: Lock is poisoned");
-                                    lock.push(String::from_utf8_lossy(line).into());
-                                    drop(lock);
+                                if !line.is_empty() {
+                                    if let Some(result) = check_keyword(line, &keyword) {
+                                        let mut lock = results
+                                            .lock()
+                                            .expect("input/get_input.rs: Lock is poisoned");
+                                        lock.push(String::from_utf8_lossy(result).into());
+                                        drop(lock);
+                                    }
+
+                                    if let Ok(Some(regex_results)) = check_regex(line, regex) {
+                                        let mut lock = results
+                                            .lock()
+                                            .expect("input/get_input.rs: Lock is poisoned");
+                                        for result in regex_results {
+                                            lock.push(String::from_utf8_lossy(result).into());
+                                        }
+                                        drop(lock);
+                                    }
                                 }
 
                                 break;
