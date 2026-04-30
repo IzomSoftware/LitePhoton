@@ -62,7 +62,7 @@ where
     writer.flush()
 }
 pub fn check_keyword<'a>(line: &'a [u8], keyword: &'a [u8]) -> Option<&'a [u8]> {
-    if !keyword.is_empty() && memchr::memmem::find(line, keyword).is_some() {
+    if memchr::memmem::find(line, keyword).is_some() {
         return Some(line);
     }
     None
@@ -71,16 +71,16 @@ pub fn check_regex<'a>(
     line: &'a [u8],
     regex_bytes: &'a [u8],
 ) -> Result<Option<Vec<&'a [u8]>>, Box<dyn error::Error>> {
-    if !regex_bytes.is_empty() {
-        let mut results = vec![];
-        let regex = &Regex::new(String::from_utf8_lossy(regex_bytes).into_owned().as_str())?;
+    let mut results = vec![];
+    let regex = &Regex::new(String::from_utf8_lossy(regex_bytes).into_owned().as_str())?;
 
-        for matched in regex.find_iter(line) {
-            results.push(matched.as_bytes());
-        }
-
-        return Ok(Some(results));
+    for matched in regex.find_iter(line) {
+        results.push(matched.as_bytes());
     }
 
-    Ok(None)
+    if results.is_empty() {
+        return Ok(None);
+    }
+
+    Ok(Some(results))
 }

@@ -23,15 +23,24 @@ pub fn stdin_normal(keyword: &[u8], regex: &[u8]) -> Result<(), Box<dyn error::E
                 if !line_buff.is_empty() {
                     let line = &line_buff[..];
 
-                    if let Some(result) = check_keyword(line, keyword) {
-                        write_all(&mut writer, result)?;
+                    if keyword.is_empty() && regex.is_empty() {
+                        write_all(&mut writer, line)?;
                         write_all(&mut writer, b"\n")?;
                     }
 
-                    if let Some(results) = check_regex(line, regex)? {
-                        for result in results {
+                    if !keyword.is_empty() {
+                        if let Some(result) = check_keyword(line, keyword) {
                             write_all(&mut writer, result)?;
                             write_all(&mut writer, b"\n")?;
+                        }
+                    }
+
+                    if !regex.is_empty() {
+                        if let Some(results) = check_regex(line, regex)? {
+                            for result in results {
+                                write_all(&mut writer, result)?;
+                                write_all(&mut writer, b"\n")?;
+                            }
                         }
                     }
                 }
@@ -46,13 +55,21 @@ pub fn stdin_normal(keyword: &[u8], regex: &[u8]) -> Result<(), Box<dyn error::E
                     if line_buff[i] == b'\n' {
                         let line = &line_buff[begin..=i];
 
-                        if let Some(result) = check_keyword(line, keyword) {
-                            write_all(&mut writer, result)?;
+                        if keyword.is_empty() && regex.is_empty() {
+                            write_all(&mut writer, line)?;
                         }
 
-                        if let Some(results) = check_regex(line, regex)? {
-                            for result in results {
+                        if !keyword.is_empty() {
+                            if let Some(result) = check_keyword(line, keyword) {
                                 write_all(&mut writer, result)?;
+                            }
+                        }
+
+                        if !regex.is_empty() {
+                            if let Some(results) = check_regex(line, regex)? {
+                                for result in results {
+                                    write_all(&mut writer, result)?;
+                                }
                             }
                         }
 
@@ -110,14 +127,24 @@ pub unsafe fn file_normal(
                 let end = i + pos;
                 let line = &mmap[begin..=end];
 
-                if let Some(result) = check_keyword(line, keyword) {
-                    write_all(&mut writer, result)?;
+                if keyword.is_empty() && regex.is_empty() {
+                    write_all(&mut writer, line)?;
+                    write_all(&mut writer, b"\n")?;
                 }
 
-                if let Some(results) = check_regex(line, regex)? {
-                    for result in results {
+                if !keyword.is_empty() {
+                    if let Some(result) = check_keyword(line, keyword) {
                         write_all(&mut writer, result)?;
                         write_all(&mut writer, b"\n")?;
+                    }
+                }
+
+                if !regex.is_empty() {
+                    if let Some(results) = check_regex(line, regex)? {
+                        for result in results {
+                            write_all(&mut writer, result)?;
+                            write_all(&mut writer, b"\n")?;
+                        }
                     }
                 }
 
@@ -128,15 +155,24 @@ pub unsafe fn file_normal(
                 if begin < mmap.len() {
                     let line = &mmap[begin..];
 
-                    if let Some(result) = check_keyword(line, keyword) {
-                        write_all(&mut writer, result)?;
+                    if keyword.is_empty() && regex.is_empty() {
+                        write_all(&mut writer, line)?;
                         write_all(&mut writer, b"\n")?;
                     }
 
-                    if let Some(results) = check_regex(line, regex)? {
-                        for result in results {
+                    if !keyword.is_empty() {
+                        if let Some(result) = check_keyword(line, keyword) {
                             write_all(&mut writer, result)?;
                             write_all(&mut writer, b"\n")?;
+                        }
+                    }
+
+                    if !regex.is_empty() {
+                        if let Some(results) = check_regex(line, regex)? {
+                            for result in results {
+                                write_all(&mut writer, result)?;
+                                write_all(&mut writer, b"\n")?;
+                            }
                         }
                     }
                 }
@@ -175,12 +211,20 @@ pub unsafe fn file_chunk_rayon(
     mmap.split(|&b| b == b'\n')
         .par_bridge()
         .filter_map(|line| {
-            if let Some(result) = check_keyword(line, keyword) {
-                return Some(vec![result]);
+            if keyword.is_empty() && regex.is_empty() {
+                return Some(vec![line]);
             }
 
-            if let Ok(Some(results)) = check_regex(line, regex) {
-                return Some(results);
+            if !keyword.is_empty() {
+                if let Some(result) = check_keyword(line, keyword) {
+                    return Some(vec![result]);
+                }
+            }
+
+            if !regex.is_empty() {
+                if let Ok(Some(results)) = check_regex(line, regex) {
+                    return Some(results);
+                }
             }
 
             None
@@ -265,13 +309,21 @@ pub unsafe fn file_chunk_std(
                             let end = begin + size;
                             let line = &mmap[begin..=end];
 
-                            if let Some(result) = check_keyword(line, &keyword) {
-                                write_all(&mut writer, result).expect("");
+                            if keyword.is_empty() && regex.is_empty() {
+                                write_all(&mut writer, line).expect("");
                             }
 
-                            if let Ok(Some(results)) = check_regex(line, &regex) {
-                                for result in results {
+                            if !keyword.is_empty() {
+                                if let Some(result) = check_keyword(line, &keyword) {
                                     write_all(&mut writer, result).expect("");
+                                }
+                            }
+
+                            if !regex.is_empty() {
+                                if let Ok(Some(results)) = check_regex(line, &regex) {
+                                    for result in results {
+                                        write_all(&mut writer, result).expect("");
+                                    }
                                 }
                             }
 
@@ -280,11 +332,27 @@ pub unsafe fn file_chunk_std(
                         None => {
                             let line = &mmap[begin..end];
 
-                            if !line.is_empty()
-                                && let Some(result) = check_keyword(line, &keyword)
-                            {
-                                write_all(&mut writer, result).expect("");
-                                write_all(&mut writer, b"\n").expect("");
+                            if !line.is_empty() {
+                                if keyword.is_empty() && regex.is_empty() {
+                                    write_all(&mut writer, line).expect("");
+                                    write_all(&mut writer, b"\n").expect("");
+                                }
+
+                                if !keyword.is_empty() {
+                                    if let Some(result) = check_keyword(line, &keyword) {
+                                        write_all(&mut writer, result).expect("");
+                                        write_all(&mut writer, b"\n").expect("");
+                                    }
+                                }
+
+                                if !regex.is_empty() {
+                                    if let Ok(Some(results)) = check_regex(line, &regex) {
+                                        for result in results {
+                                            write_all(&mut writer, result).expect("");
+                                            write_all(&mut writer, b"\n").expect("");
+                                        }
+                                    }
+                                }
                             }
 
                             break;
