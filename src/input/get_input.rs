@@ -297,7 +297,7 @@ pub mod chunk {
             thread::scope({
                 let results = Arc::clone(&results);
                 move |scope| {
-                    for id in 0..=num_workers {
+                    for id in 0..num_workers {
                         let results = Arc::clone(&results);
                         let keyword = Arc::clone(&keyword);
                         let regex = Arc::clone(&regex);
@@ -327,7 +327,7 @@ pub mod chunk {
                             }
 
                             while begin < end {
-                                match memchr::memchr(b'\n', &mmap[begin..=end]) {
+                                match memchr::memchr(b'\n', &mmap[begin..end]) {
                                     Some(size) => {
                                         let end = begin + size;
                                         let line = &mmap[begin..end];
@@ -441,7 +441,7 @@ pub mod chunk {
             rayon::scope({
                 let results = Arc::clone(&results);
                 move |scope| {
-                    for id in 0..=num_workers {
+                    for id in 0..num_workers {
                         let results = Arc::clone(&results);
                         let keyword = Arc::clone(&keyword);
                         let regex = Arc::clone(&regex);
@@ -471,7 +471,7 @@ pub mod chunk {
                             }
 
                             while begin < end {
-                                match memchr::memchr(b'\n', &mmap[begin..=end]) {
+                                match memchr::memchr(b'\n', &mmap[begin..end]) {
                                     Some(size) => {
                                         let end = begin + size;
                                         let line = &mmap[begin..end];
