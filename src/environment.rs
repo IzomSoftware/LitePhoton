@@ -11,6 +11,7 @@ pub struct Environment {
     pub keyword: String,
     pub regex: String,
     pub method: String,
+    pub provider: String,
 }
 
 impl Environment {
@@ -24,10 +25,11 @@ impl Environment {
             keyword: args.keyword.clone(),
             regex: args.regex.clone(),
             method: args.method.clone(),
+            provider: args.provider.clone(),
         }
     }
-    pub fn setup(args: &Arguments) -> Result<(), Environment> {
-        ENVIRONMENT.set(Self::get(args))
+    pub fn setup(args: &Arguments) -> &Environment {
+        ENVIRONMENT.get_or_init(|| Self::get(args))
     }
 }
 

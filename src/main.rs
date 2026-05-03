@@ -1,23 +1,23 @@
-use crate::argument_parser::{ARGUMENTS, Arguments};
-use crate::common::Method;
-use crate::environment::{ENVIRONMENT, Environment};
-use crate::input::Input;
+use crate::{
+    argument_parser::Arguments,
+    common::{Method, Provider},
+    environment::Environment,
+    input::Input,
+};
 use log::info;
-use std::path::PathBuf;
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
+
 mod argument_parser;
 mod common;
 mod environment;
 mod input;
 mod logger;
+
 /// Entry point
 fn main() {
-    Arguments::setup().expect("main.rs: Couldn't parse args");
+    let args = Arguments::setup();
 
-    Environment::setup(ARGUMENTS.get().expect("main.rs: Cannot get arguments"))
-        .expect("main.rs: cannot set ENVIRONMENT. already initialized?");
-
-    let env = ENVIRONMENT.get().expect("main.rs: Cannot get environment");
+    let env = Environment::setup(args);
 
     logger::setup_logger(env.debug).expect("main.rs:: Cannot setup logger");
 
@@ -28,6 +28,8 @@ fn main() {
             unsafe {
                 input::print_input::input(
                     Method::from_str(&env.method).expect("main.rs: Provided mode not found"),
+                    Provider::from_str(&env.provider)
+                        .expect("main.rs: Provided provider not found"),
                     Input::Stdin(()),
                     env.stable,
                     env.keyword.clone(),
@@ -40,6 +42,8 @@ fn main() {
                 unsafe {
                     input::print_input::input(
                         Method::from_str(&env.method).expect("main.rs: Provided mode not found"),
+                        Provider::from_str(&env.provider)
+                            .expect("main.rs: Provided provider not found"),
                         Input::File(PathBuf::from(file)),
                         env.stable,
                         env.keyword.clone(),
@@ -53,6 +57,7 @@ fn main() {
         let lines = unsafe {
             input::get_input::input(
                 Method::from_str(&env.method).expect("main.rs: Provided mode not found"),
+                Provider::from_str(&env.provider).expect("main.rs: Provided provider not found"),
                 Input::Stdin(()),
                 env.stable,
                 env.keyword.clone(),
@@ -60,7 +65,7 @@ fn main() {
             )
             .expect("main.rs: Couldn't read stdin")
         };
-        let results = input::get_input::dedup_normal(lines);
+        let results = input::get_input::simple::dedup_vec(lines);
         for line in results {
             println!("{line}")
         }
@@ -69,6 +74,8 @@ fn main() {
             let lines = unsafe {
                 input::get_input::input(
                     Method::from_str(&env.method).expect("main.rs: Provided mode not found"),
+                    Provider::from_str(&env.provider)
+                        .expect("main.rs: Provided provider not found"),
                     Input::File(PathBuf::from(file)),
                     env.stable,
                     env.keyword.clone(),
@@ -76,7 +83,7 @@ fn main() {
                 )
                 .expect("main.rs: Couldn't read file")
             };
-            let results = input::get_input::dedup_normal(lines);
+            let results = input::get_input::simple::dedup_vec(lines);
             for line in results {
                 println!("{line}");
             }
