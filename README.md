@@ -35,8 +35,12 @@ LitePhoton is a command-line tool that can be used to print out contents of a fi
 ```
 the command would print out file contents to stdout (Standard Output).
 
-You can also specify the search method using the `-m` option. The available methods are `rayon`, `stdthread` and `simple`.
-the rayon method provides concurrency by rayon library, stdthread provides concurrency by Rust's standard library and simple provides basic search without any kind of concurrency. note that, you can pipe input into LitePhoton. An example could be the cat command.
+You can also specify the search method using the `-m` option. The available methods are `simple`, `chunk` and `split`. by default, LitePhoton uses 'split' method.
+You can also specify the provider by `-p` option. rayon provides concurrency by rayon library, stdthread provides concurrency by Rust's standard library. by default, LitePhoton uses the 'rayon' provider.
+
+The simple method provides basic search without any kind of concurrency. that being said, specifying a provider with simple method will be ignored.
+
+note that, you can pipe input into LitePhoton. An example could be the cat command.
 
 Example with searching a file for a specific keyword:
 ```
