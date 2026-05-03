@@ -19,21 +19,23 @@ pub struct Arguments {
     pub keyword: String,
     #[arg(short, long, default_value = "")]
     pub regex: String,
-    #[arg(short, long, default_value = "rayon")]
+    #[arg(short, long, default_value = "split")]
     pub method: String,
+    #[arg(short, long, default_value = "rayon")]
+    pub provider: String,
     // unnecessary because tty is different from stdin
     // #[arg(value_parser)]
     // pub last: Vec<String>,
 }
 
 impl Arguments {
-    pub fn lowercase(mut self) -> Self {
+    pub fn lowercase(mut self) -> Arguments {
         self.method = self.method.to_lowercase();
         self
     }
 
-    pub fn setup() -> Result<(), Arguments> {
-        ARGUMENTS.set(Arguments::parse().lowercase())
+    pub fn setup<'a>() -> &'a Arguments {
+        ARGUMENTS.get_or_init(|| Arguments::parse().lowercase())
     }
 }
 

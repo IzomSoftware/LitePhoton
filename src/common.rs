@@ -16,14 +16,23 @@ pub enum ReadInputError {
     EmptyFile,
 }
 
+/// Concurrency providers
+/// Uses strum lib to convert Enums into Strings and parse them
+#[derive(Debug, PartialEq, EnumString)]
+#[strum(serialize_all = "lowercase")]
+pub enum Provider {
+    Rayon,
+    StdThread,
+}
+
 /// Modes of reading
 /// Uses strum lib to convert Enums into Strings and parse them
 #[derive(Debug, PartialEq, EnumString)]
 #[strum(serialize_all = "lowercase")]
 pub enum Method {
     Simple,
-    Rayon,
-    StdThread,
+    Split,
+    Chunk,
 }
 
 pub fn create_buf_write<W>(inner: W) -> BufWriter<W>
