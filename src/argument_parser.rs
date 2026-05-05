@@ -19,6 +19,10 @@ pub struct Arguments {
     pub keyword: String,
     #[arg(short, long, default_value = "")]
     pub regex: String,
+    #[arg(short, long, default_value = "")]
+    pub prefix: String,
+    #[arg(short, long, default_value = "")]
+    pub suffix: String,
     #[arg(short, long, default_value = "split")]
     pub method: String,
     #[arg(short, long, default_value = "rayon")]

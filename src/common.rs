@@ -18,7 +18,7 @@ pub enum ReadInputError {
 
 /// Concurrency providers
 /// Uses strum lib to convert Enums into Strings and parse them
-#[derive(Debug, PartialEq, EnumString)]
+#[derive(Debug, PartialEq, EnumString, Clone)]
 #[strum(serialize_all = "lowercase")]
 pub enum Provider {
     Rayon,
@@ -27,7 +27,7 @@ pub enum Provider {
 
 /// Modes of reading
 /// Uses strum lib to convert Enums into Strings and parse them
-#[derive(Debug, PartialEq, EnumString)]
+#[derive(Debug, PartialEq, EnumString, Clone)]
 #[strum(serialize_all = "lowercase")]
 pub enum Method {
     Simple,

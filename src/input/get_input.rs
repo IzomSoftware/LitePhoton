@@ -13,7 +13,12 @@ pub mod simple {
         io::{self, Read},
     };
 
-    pub fn stdin(keyword: &[u8], regex: &[u8]) -> Result<Vec<String>, Box<dyn error::Error>> {
+    pub fn stdin(
+        prefix: &[u8],
+        suffix: &[u8],
+        keyword: &[u8],
+        regex: &[u8],
+    ) -> Result<Vec<String>, Box<dyn error::Error>> {
         let mut results: Vec<String> = vec![];
         let mut reader = create_read_buf(io::stdin());
         let mut line_buff = Vec::with_capacity(4 * 1024);
@@ -25,7 +30,8 @@ pub mod simple {
             match reader.read(&mut read_buff) {
                 Ok(0) => {
                     if !line_buff.is_empty() {
-                        let line = &line_buff[..];
+                        let line = [prefix, &line_buff[..], suffix].concat();
+                        let line = line.as_slice();
 
                         if keyword.is_empty() && regex.is_empty() {
                             results.push(String::from_utf8_lossy(line).into());
@@ -52,7 +58,8 @@ pub mod simple {
 
                     while i < line_buff.len() {
                         if line_buff[i] == b'\n' {
-                            let line = &line_buff[begin..i];
+                            let line = [prefix, &line_buff[begin..i], suffix].concat();
+                            let line = line.as_slice();
 
                             if keyword.is_empty() && regex.is_empty() {
                                 results.push(String::from_utf8_lossy(line).into());
@@ -101,6 +108,8 @@ pub mod simple {
      * Memory mapping a file is not a safe thing to do
      */
     pub unsafe fn file(
+        prefix: &[u8],
+        suffix: &[u8],
         keyword: &[u8],
         regex: &[u8],
         input: Input,
@@ -120,7 +129,8 @@ pub mod simple {
             match memchr::memchr(b'\n', &mmap[i..]) {
                 Some(pos) => {
                     let end = i + pos;
-                    let line = &mmap[begin..end];
+                    let line = [prefix, &mmap[begin..end], suffix].concat();
+                    let line = line.as_slice();
 
                     if keyword.is_empty() && regex.is_empty() {
                         results.push(String::from_utf8_lossy(line).into());
@@ -145,7 +155,8 @@ pub mod simple {
                 }
                 None => {
                     if begin < mmap.len() {
-                        let line = &mmap[begin..];
+                        let line = [prefix, &mmap[begin..], suffix].concat();
+                        let line = line.as_slice();
 
                         if keyword.is_empty() && regex.is_empty() {
                             results.push(String::from_utf8_lossy(line).into());
@@ -186,8 +197,9 @@ pub mod split {
             common::{ReadInputError, check_keyword, check_regex, map_file},
             input::Input,
         };
-        use rayon::iter::{ParallelBridge, ParallelIterator};
+        use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
         use std::{
+            collections::HashSet,
             error,
             sync::{Arc, Mutex},
         };
@@ -197,6 +209,8 @@ pub mod split {
          * Memory mapping a file is not a safe thing to do
          */
         pub unsafe fn file(
+            prefix: &[u8],
+            suffix: &[u8],
             keyword: &[u8],
             regex: &[u8],
             input: Input,
@@ -241,6 +255,9 @@ pub mod split {
                         .lock()
                         .expect("input/get_input.rs: Lock is poisoned");
                     for line in lines {
+                        let line = [prefix, line, suffix].concat();
+                        let line = line.as_slice();
+
                         lock.push(String::from_utf8_lossy(line).into());
                     }
                     drop(lock);
@@ -252,6 +269,12 @@ pub mod split {
             let vec = lock.to_vec();
             drop(lock);
             Ok(vec)
+        }
+
+        pub fn dedup_vec(lines: Vec<String>) -> Vec<String> {
+            let hashset: HashSet<String> = lines.par_iter().cloned().collect();
+            let vec: Vec<String> = hashset.par_iter().cloned().collect();
+            vec
         }
     }
 }
@@ -273,6 +296,8 @@ pub mod chunk {
          * Memory mapping a file is not a safe thing to do
          */
         pub unsafe fn file(
+            prefix: &[u8],
+            suffix: &[u8],
             keyword: &[u8],
             regex: &[u8],
             input: Input,
@@ -330,7 +355,8 @@ pub mod chunk {
                                 match memchr::memchr(b'\n', &mmap[begin..end]) {
                                     Some(size) => {
                                         let end = begin + size;
-                                        let line = &mmap[begin..end];
+                                        let line = [prefix, &mmap[begin..end], suffix].concat();
+                                        let line = line.as_slice();
                                         let mut lock = results
                                             .lock()
                                             .expect("input/get_input.rs: Lock is poisoned");
@@ -357,7 +383,8 @@ pub mod chunk {
                                         begin = end + 1;
                                     }
                                     None => {
-                                        let line = &mmap[begin..end];
+                                        let line = [prefix, &mmap[begin..end], suffix].concat();
+                                        let line = line.as_slice();
                                         let mut lock = results
                                             .lock()
                                             .expect("input/get_input.rs: Lock is poisoned");
@@ -417,6 +444,8 @@ pub mod chunk {
          * Memory mapping a file is not a safe thing to do
          */
         pub unsafe fn file(
+            prefix: &[u8],
+            suffix: &[u8],
             keyword: &[u8],
             regex: &[u8],
             input: Input,
@@ -474,7 +503,8 @@ pub mod chunk {
                                 match memchr::memchr(b'\n', &mmap[begin..end]) {
                                     Some(size) => {
                                         let end = begin + size;
-                                        let line = &mmap[begin..end];
+                                        let line = [prefix, &mmap[begin..end], suffix].concat();
+                                        let line = line.as_slice();
                                         let mut lock = results
                                             .lock()
                                             .expect("input/get_input.rs: Lock is poisoned");
@@ -500,7 +530,8 @@ pub mod chunk {
                                         begin = end + 1;
                                     }
                                     None => {
-                                        let line = &mmap[begin..end];
+                                        let line = [prefix, &mmap[begin..end], suffix].concat();
+                                        let line = line.as_slice();
                                         let mut lock = results
                                             .lock()
                                             .expect("input/get_input.rs: Lock is poisoned");
@@ -546,36 +577,57 @@ pub mod chunk {
  * # Safety
  * Memory mapping a file is not a safe thing to do
 */
+#[allow(clippy::too_many_arguments)]
 pub unsafe fn input(
     method: Method,
     provider: Provider,
     input: Input,
     #[allow(unused)] stable: bool,
+    prefix: String,
+    suffix: String,
     keyword: String,
     regex: String,
 ) -> Result<Vec<String>, Box<dyn error::Error>> {
+    let prefix = prefix.as_bytes();
+    let suffix = suffix.as_bytes();
     let keyword = keyword.as_bytes();
     let regex = regex.as_bytes();
 
     match input {
         // Use BufReader with stdin
-        Input::Stdin(_) => simple::stdin(keyword, regex),
+        Input::Stdin(_) => simple::stdin(prefix, suffix, keyword, regex),
         // Use MemMap2 with with files
         Input::File(_) => match method {
             Method::Simple =>
             // # Safety
             // Memory mapping a file is not a fail safe thing to do
-            unsafe { simple::file(keyword, regex, input) },
+            unsafe { simple::file(prefix, suffix, keyword, regex, input) },
             Method::Split => match provider {
-                Provider::Rayon => unsafe { split::rayon::file(keyword, regex, input) },
+                Provider::Rayon => unsafe {
+                    split::rayon::file(prefix, suffix, keyword, regex, input)
+                },
                 _ => unimplemented!(),
             },
             Method::Chunk => match provider {
                 Provider::Rayon => unsafe {
-                    chunk::rayon::file(keyword, regex, input, rayon::current_num_threads())
+                    chunk::rayon::file(
+                        prefix,
+                        suffix,
+                        keyword,
+                        regex,
+                        input,
+                        rayon::current_num_threads(),
+                    )
                 },
                 Provider::StdThread => unsafe {
-                    chunk::stdthread::file(keyword, regex, input, rayon::current_num_threads())
+                    chunk::stdthread::file(
+                        prefix,
+                        suffix,
+                        keyword,
+                        regex,
+                        input,
+                        rayon::current_num_threads(),
+                    )
                 },
             },
         },
