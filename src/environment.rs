@@ -10,6 +10,8 @@ pub struct Environment {
     pub file: Vec<String>,
     pub keyword: String,
     pub regex: String,
+    pub prefix: String,
+    pub suffix: String,
     pub method: String,
     pub provider: String,
 }
@@ -24,6 +26,8 @@ impl Environment {
             file: args.file.clone(),
             keyword: args.keyword.clone(),
             regex: args.regex.clone(),
+            prefix: args.prefix.clone(),
+            suffix: args.suffix.clone(),
             method: args.method.clone(),
             provider: args.provider.clone(),
         }
