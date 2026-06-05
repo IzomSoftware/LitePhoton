@@ -1,5 +1,5 @@
 use clap::Parser;
-use std::sync::OnceLock;
+use std::sync::LazyLock;
 
 #[derive(Parser, Debug)]
 pub struct Arguments {
@@ -37,10 +37,6 @@ impl Arguments {
         self.method = self.method.to_lowercase();
         self
     }
-
-    pub fn setup<'a>() -> &'a Arguments {
-        ARGUMENTS.get_or_init(|| Arguments::parse().lowercase())
-    }
 }
 
-pub static ARGUMENTS: OnceLock<Arguments> = OnceLock::new();
+pub static ARGUMENTS: LazyLock<Arguments> = LazyLock::new(|| Arguments::parse().lowercase());
