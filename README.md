@@ -1,4 +1,5 @@
-# LitePhoton: a blazing fast text file reader/scanner/deduplicator
+# NOTE: a big update is incoming with performance/codebase/quality-of-life/standard improvements
+# LitePhoton: a blazingly fast text file reader/scanner/deduplicator
 
 
 ## Overview
