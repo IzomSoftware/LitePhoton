@@ -15,7 +15,7 @@ pub trait Input {
     fn mmap(&self) -> io::Result<Mmap> {
         Err(Error::from(ErrorKind::InvalidInput))
     }
-    fn get_read_buf(&self) -> io::Result<BufReader<Box<dyn Read + Send>>>{
+    fn create_read_buf(&self) -> io::Result<BufReader<Box<dyn Read + Send>>>{
         Err(Error::from(ErrorKind::InvalidInput))
     }
 }
@@ -27,7 +27,7 @@ pub enum InputType {
 pub struct StdinInput;
 
 impl Input for StdinInput {
-    fn get_read_buf(&self) -> io::Result<BufReader<Box<dyn Read + Send>>> {
+    fn create_read_buf(&self) -> io::Result<BufReader<Box<dyn Read + Send>>> {
         Ok(BufReader::with_capacity(64 * 1024,Box::new(io::stdin())))
     }
 }
@@ -48,7 +48,7 @@ impl Input for FileInput {
     }
 }
 
-struct InputBuilder;
+pub struct InputBuilder;
 
 impl InputBuilder {
     pub fn new(input_type: InputType) -> Box<dyn Input> {

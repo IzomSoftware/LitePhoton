@@ -1,95 +1,160 @@
-use regex::bytes::{Matches, Regex};
+use std::{
+    default,
+    io::{Read, Write},
+};
+
+use regex::bytes::Regex;
 use strum_macros::EnumString;
 
-pub enum ScanIterator<'a> {
-    Keyword(std::iter::Once<&'a [u8]>),
-    Regex(Matches<'a, 'a>),
-}
-impl<'a> Iterator for ScanIterator<'a> {
-    type Item = &'a [u8];
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            ScanIterator::Keyword(iterator) => iterator.next(),
-            ScanIterator::Regex(iter) => iter.next().map(|b| b.as_bytes()),
-        }
-    }
-}
-pub trait Scanner {
-    fn best_match<'a>(&'a self, line: &'a [u8]) -> Option<ScanIterator<'a>>;
-}
-pub enum ScanType {
-    Keyword(Vec<u8>),
-    Regex(Regex),
-    Both(Vec<u8>, Regex),
-}
+use crate::{
+    input::{Input, InputType},
+    matching::{MatchStrategyIterator, Matcher},
+    scan, utils,
+};
 
-struct KeywordScanner {
-    keyword: Vec<u8>,
-}
-impl Scanner for KeywordScanner {
-    fn best_match<'a>(&'a self, line: &'a [u8]) -> Option<ScanIterator<'a>> {
-        let keyword = &self.keyword;
-        if memchr::memmem::find(line, keyword).is_some() {
-            return Some(ScanIterator::Keyword(std::iter::once(line)));
-        }
-        None
-    }
-}
-struct RegexScanner {
-    regex: Regex,
-}
-impl Scanner for RegexScanner {
-    fn best_match<'a>(&'a self, line: &'a [u8]) -> Option<ScanIterator<'a>> {
-        let regex = &self.regex;
-        if regex.is_match(line) {
-            return Some(ScanIterator::Regex(self.regex.find_iter(line)));
-        }
-        None
-    }
-}
-struct BothScanner {
-    pub keyword: Vec<u8>,
-    pub regex: Regex,
-}
-impl Scanner for BothScanner {
-    fn best_match<'a>(&'a self, line: &'a [u8]) -> Option<ScanIterator<'a>> {
-        let keyword = &self.keyword;
-        let regex = &self.regex;
-        if memchr::memmem::find(line, keyword).is_some() {
-            return Some(ScanIterator::Keyword(std::iter::once(line)));
-        }
-        if regex.is_match(line) {
-            return Some(ScanIterator::Regex(self.regex.find_iter(line)));
-        }
-        None
-    }
-}
 /// Concurrency providers
 /// Uses strum lib to convert Enums into Strings and parse them
-#[derive(Debug, PartialEq, EnumString, Clone)]
+#[derive(Debug, Default, PartialEq, EnumString, Clone)]
 #[strum(serialize_all = "lowercase")]
-pub enum Provider {
+pub enum ConcurrencyProvider {
+    #[default]
     Rayon,
     StdThread,
 }
-
-/// Modes of reading
-/// Uses strum lib to convert Enums into Strings and parse them
-#[derive(Debug, PartialEq, EnumString, Clone)]
-#[strum(serialize_all = "lowercase")]
-pub enum Method {
-    Simple,
+#[derive(Debug, Default, PartialEq, EnumString, Clone)]
+pub enum ConcurrencyMethod {
+    None,
+    #[default]
     Split,
     Chunk,
 }
+pub struct ScanProperties<'a> {
+    pub input: Box<dyn Input>,
+    pub prefix: &'a [u8],
+    pub matcher: Matcher,
+    pub suffix: &'a [u8],
+    pub get: bool,
+}
+pub trait Scanner {
+    fn match_line<'a>(
+        &self,
+        scan_properties: &'a ScanProperties<'a>,
+        line: &'a [u8],
+    ) -> Option<MatchStrategyIterator<'a>> {
+        scan_properties.matcher.best_match(line)
+    }
+    fn scan(&self, scan_properties: ScanProperties) -> Option<Vec<String>>;
+}
+pub struct NoneScanner {}
+impl Scanner for NoneScanner {
+    fn match_line<'a>(
+        &self,
+        scan_properties: &'a ScanProperties<'a>,
+        line: &'a [u8],
+    ) -> Option<MatchStrategyIterator<'a>> {
+        scan_properties.matcher.best_match(line)
+    }
+    fn scan(&self, scan_properties: ScanProperties) -> Option<Vec<String>> {
+        let mut results: Vec<String> = vec![];
+        let input = &scan_properties.input;
+        let prefix = scan_properties.prefix;
+        let suffix = scan_properties.suffix;
+        let get = scan_properties.get;
+        let mut reader = input.create_read_buf().unwrap();
+        let mut writer = utils::stdout_util::create_stdout_buf_write();
+        let mut line_buf = utils::string_util::create_line_buf();
+        let mut read_buf = utils::string_util::create_read_buf();
+        let mut begin = 0usize;
+        let mut i = 0usize;
 
-pub struct ScannerBuilder;
+        loop {
+            match reader.read(&mut read_buf) {
+                Ok(0) => {
+                    if !line_buf.is_empty() {
+                        let line = [prefix, &line_buf, suffix].concat();
+                        let line = line.as_slice();
+
+                        let match_results = self
+                            .match_line(&scan_properties, line)
+                            .into_iter()
+                            .flatten();
+
+                        if get {
+                            results
+                                .extend(match_results.map(|b| String::from_utf8_lossy(b).into()));
+                        } else {
+                            for result in match_results {
+                                writer.write_all(result);
+                            }
+                        }
+                    }
+
+                    break;
+                }
+                Ok(pos) => {
+                    line_buf.extend_from_slice(&read_buf[..pos]);
+
+                    while i < line_buf.len() {
+                        if line_buf[i] == b'\n' {
+                            let line = [prefix, &line_buf[begin..i], suffix].concat();
+                            let line = line.as_slice();
+
+                            let match_results = self
+                                .match_line(&scan_properties, line)
+                                .into_iter()
+                                .flatten();
+
+                            if get {
+                                results.extend(
+                                    match_results.map(|b| String::from_utf8_lossy(b).into()),
+                                );
+                            } else {
+                                for result in match_results {
+                                    writer.write_all(result);
+                                }
+                            }
+                            begin = i + 1;
+                        }
+                        i += 1;
+                    }
+                    if begin == 0 {
+                        continue;
+                    }
+
+                    if begin < line_buf.len() {
+                        line_buf.drain(0..begin);
+                    } else {
+                        line_buf.clear();
+                    }
+                }
+                Err(err) => break,
+            }
+        }
+        None
+    }
+}
+
+pub struct RayonScanner {}
+impl Scanner for RayonScanner {
+    fn scan(&self, scan_properties: ScanProperties) -> Option<Vec<String>> {
+        None
+    }
+}
+pub struct StdThreadScanner {}
+impl Scanner for StdThreadScanner {
+    fn scan(&self, scan_properties: ScanProperties) -> Option<Vec<String>> {
+        None
+    }
+}
+pub struct ScannerBuilder {}
 impl ScannerBuilder {
-    pub fn new(scan_type: ScanType) -> Box<dyn Scanner> {
-        match scan_type {
-            ScanType::Keyword(keyword) => Box::new(KeywordScanner { keyword }),
-            ScanType::Regex(regex) => Box::new(RegexScanner { regex }),
-            ScanType::Both(keyword, regex) => Box::new(BothScanner { keyword, regex }),
+    pub fn new(concurrency_method: ConcurrencyMethod) -> Box<dyn Scanner> {
+        match concurrency_method {
+            ConcurrencyMethod::None => {
+                Box::new(NoneScanner{})
+            },
+            ConcurrencyMethod::Split => unimplemented!(),
+            ConcurrencyMethod::Chunk => unimplemented!(),
         }
     }
 }

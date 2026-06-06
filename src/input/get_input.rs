@@ -84,15 +84,7 @@
 //                         i += 1;
 //                     }
 
-//                     if begin == 0 {
-//                         continue;
-//                     }
 
-//                     if begin < line_buff.len() {
-//                         line_buff.drain(0..begin);
-//                     } else {
-//                         line_buff.clear();
-//                     }
 //                 }
 //                 Err(_) => {
 //                     break;
