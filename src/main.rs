@@ -7,9 +7,20 @@
 // use log::info;
 // use std::{path::PathBuf, str::FromStr};
 
+use std::str::FromStr;
+
+use log::{error, info};
+
+use crate::{
+    argument_parser::ARGUMENTS, input::{InputBuilder, InputType}, matching::Matcher, scan::{ConcurrencyMethod, ConcurrencyProvider, ScanProperties, ScannerBuilder}
+};
+
 mod argument_parser;
-mod input;
+pub mod input;
 mod logger;
+pub mod matching;
+pub mod scan;
+pub mod utils;
 
 // /// Entry point
 // #[allow(clippy::collapsible_else_if)]
@@ -21,10 +32,6 @@ mod logger;
 //     logger::setup_logger(env.debug).expect("main.rs:: Cannot setup logger");
 
 //     info!("Starting up LitePhoton with this environment: {:?}", env);
-
-//     let is_tty = !std::io::IsTerminal::is_terminal(&std::io::stdin()) && !env.bypass_stdin_check;
-//     let method = Method::from_str(&env.method).expect("main.rs: Unexpected method");
-//     let provider = Provider::from_str(&env.provider).expect("main.rs: Unexpected provider");
 
 //     if is_tty {
 //         if env.dedup {
@@ -117,6 +124,23 @@ mod logger;
 //         }
 //     }
 // }
-fn main () {
-    
+fn main() {
+    let args = &*ARGUMENTS;
+
+    logger::setup_logger(args.debug).expect("Cannot setup logger");
+
+    info!("Starting up LitePhoton with this environment: {:?}", args);
+
+    let is_tty = !std::io::IsTerminal::is_terminal(&std::io::stdin()) && !args.bypass_stdin_check;
+    // let method = ConcurrencyMethod::from_str(&args.method).expect("main.rs: Unexpected method");
+    // let provider =
+        // ConcurrencyProvider::from_str(&args.provider).expect("main.rs: Unexpected provider");
+
+    ScannerBuilder::new(ConcurrencyMethod::None).scan(ScanProperties {
+        get: false,
+        input: InputBuilder::new(InputType::Stdin),
+        matcher: Matcher::Keyword("sasofaskfopia91".as_bytes().to_vec()),
+        prefix: "hi".as_bytes(),
+        suffix: "bye".as_bytes(),
+    });
 }
