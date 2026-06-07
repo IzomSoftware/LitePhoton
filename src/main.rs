@@ -139,7 +139,7 @@ fn main() {
     ScannerBuilder::new(ConcurrencyMethod::None).scan(ScanProperties {
         get: false,
         input: InputBuilder::new(InputType::Stdin),
-        matcher: Matcher::Keyword("sasofaskfopia91".as_bytes().to_vec()),
+        matcher: Matcher::Keyword("test".as_bytes().to_vec()),
         prefix: "hi".as_bytes(),
         suffix: "bye".as_bytes(),
     });

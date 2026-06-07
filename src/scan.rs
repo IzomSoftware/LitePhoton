@@ -9,7 +9,8 @@ use strum_macros::EnumString;
 use crate::{
     input::{Input, InputType},
     matching::{MatchStrategyIterator, Matcher},
-    scan, utils,
+    scan,
+    utils::{self, stdout_util::BufWriterImpl},
 };
 
 /// Concurrency providers
@@ -84,7 +85,9 @@ impl Scanner for NoneScanner {
                                 .extend(match_results.map(|b| String::from_utf8_lossy(b).into()));
                         } else {
                             for result in match_results {
-                                writer.write_all(result);
+                                if writer.write_all_with_newline(result).is_err() {
+                                    return None;
+                                }
                             }
                         }
                     }
@@ -110,7 +113,9 @@ impl Scanner for NoneScanner {
                                 );
                             } else {
                                 for result in match_results {
-                                    writer.write_all(result);
+                                    if writer.write_all_with_newline(result).is_err() {
+                                        return None;
+                                    }
                                 }
                             }
                             begin = i + 1;
@@ -127,10 +132,14 @@ impl Scanner for NoneScanner {
                         line_buf.clear();
                     }
                 }
-                Err(err) => break,
+                Err(_) => break,
             }
         }
-        None
+        if get && !results.is_empty() {
+            Some(results)
+        } else {
+            None
+        }
     }
 }
 
@@ -150,9 +159,7 @@ pub struct ScannerBuilder {}
 impl ScannerBuilder {
     pub fn new(concurrency_method: ConcurrencyMethod) -> Box<dyn Scanner> {
         match concurrency_method {
-            ConcurrencyMethod::None => {
-                Box::new(NoneScanner{})
-            },
+            ConcurrencyMethod::None => Box::new(NoneScanner {}),
             ConcurrencyMethod::Split => unimplemented!(),
             ConcurrencyMethod::Chunk => unimplemented!(),
         }
