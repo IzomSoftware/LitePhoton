@@ -33,8 +33,9 @@ pub struct Arguments {
 }
 
 impl Arguments {
-    pub fn lowercase(mut self) -> Arguments {
+    fn lowercase(mut self) -> Self {
         self.method = self.method.to_lowercase();
+        self.provider = self.provider.to_lowercase();
         self
     }
 }

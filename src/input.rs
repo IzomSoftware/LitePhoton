@@ -51,7 +51,7 @@ impl Input for FileInput {
 pub struct InputBuilder;
 
 impl InputBuilder {
-    pub fn new(input_type: InputType) -> Box<dyn Input> {
+    pub fn new(input_type: InputType) -> Box<dyn Input + Sync> {
         match input_type {
             InputType::File(path) => Box::new(FileInput { path }),
             InputType::Stdin => Box::new(StdinInput),

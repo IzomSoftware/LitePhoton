@@ -7,12 +7,15 @@
 // use log::info;
 // use std::{path::PathBuf, str::FromStr};
 
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 
 use log::{error, info};
 
 use crate::{
-    argument_parser::ARGUMENTS, input::{InputBuilder, InputType}, matching::Matcher, scan::{ConcurrencyMethod, ConcurrencyProvider, ScanProperties, ScannerBuilder}
+    argument_parser::ARGUMENTS,
+    input::{InputBuilder, InputType},
+    matching::Matcher,
+    scan::{ConcurrencyMethod, ConcurrencyProvider, ScanMethod, ScanProperties, ScannerBuilder},
 };
 
 mod argument_parser;
@@ -132,15 +135,28 @@ fn main() {
     info!("Starting up LitePhoton with this environment: {:?}", args);
 
     let is_tty = !std::io::IsTerminal::is_terminal(&std::io::stdin()) && !args.bypass_stdin_check;
-    // let method = ConcurrencyMethod::from_str(&args.method).expect("main.rs: Unexpected method");
-    // let provider =
-        // ConcurrencyProvider::from_str(&args.provider).expect("main.rs: Unexpected provider");
+    let input = if is_tty {
+        vec![InputBuilder::new(InputType::Stdin)]
+    } else {
+        let mut inputs = vec![];
+        for file in &args.file {
+            inputs.push(InputBuilder::new(InputType::File(PathBuf::from(file))));
+        }
+        inputs
+    };
+    let method = ConcurrencyMethod::from_str(&args.method).expect("main.rs: Unexpected method");
+    let provider =
+        ConcurrencyProvider::from_str(&args.provider).expect("main.rs: Unexpected provider");
 
-    ScannerBuilder::new(ConcurrencyMethod::None).scan(ScanProperties {
-        get: false,
-        input: InputBuilder::new(InputType::Stdin),
-        matcher: Matcher::Keyword("test".as_bytes().to_vec()),
-        prefix: "hi".as_bytes(),
-        suffix: "bye".as_bytes(),
-    });
+    for input in input {
+        ScannerBuilder::new(ScanMethod::new(method.clone(), provider.clone())).scan(
+            ScanProperties {
+                get: false,
+                input,
+                matcher: Matcher::Keyword(args.keyword.as_bytes().to_vec()),
+                prefix: args.prefix.as_bytes(),
+                suffix: args.suffix.as_bytes(),
+            },
+        );
+    }
 }
