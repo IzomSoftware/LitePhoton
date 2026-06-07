@@ -1,0 +1,1 @@
+cargo flamegraph -r -c "record -F 997 -g -e cycles:u" -- $@

@@ -66,7 +66,6 @@ impl Scanner for NoneScanner {
         let suffix = scan_properties.suffix;
         let get = scan_properties.get;
         let mut reader = input.create_read_buf().unwrap();
-        let mut writer = utils::stdout_util::create_stdout_buf_write();
         let mut line_buf = utils::string_util::create_line_buf();
         let mut read_buf = utils::string_util::create_read_buf();
         let mut begin = 0usize;
@@ -89,6 +88,7 @@ impl Scanner for NoneScanner {
                                 .extend(match_results.map(|b| String::from_utf8_lossy(b).into()));
                         } else {
                             for result in match_results {
+                                let mut writer = utils::stdout_util::create_stdout_buf_write();
                                 if writer.write_all_with_newline(result).is_err() {
                                     return None;
                                 }
@@ -117,6 +117,7 @@ impl Scanner for NoneScanner {
                                 );
                             } else {
                                 for result in match_results {
+                                    let mut writer = utils::stdout_util::create_stdout_buf_write();
                                     if writer.write_all_with_newline(result).is_err() {
                                         return None;
                                     }
@@ -172,13 +173,13 @@ impl Scanner for RayonScanner {
                         )
                     })
                     .for_each(|iter| {
-                        let mut writer = create_stdout_buf_write();
                         let match_results = iter;
-                        let mut lock = results.lock().unwrap();
                         if get {
+                            let mut lock = results.lock().unwrap();
                             lock.extend(match_results.map(|b| String::from_utf8_lossy(b).into()));
                         } else {
                             for result in match_results {
+                                let mut writer = create_stdout_buf_write();
                                 writer.write_all_with_newline(result).unwrap()
                             }
                         }
@@ -223,16 +224,14 @@ impl ScannerBuilder {
     pub fn new(scan_method: ScanMethod) -> Box<dyn Scanner> {
         match scan_method.concurrency_method {
             ConcurrencyMethod::None => Box::new(NoneScanner {}),
-            ConcurrencyMethod::Split => {
-                match scan_method.concurrency_provider {
-                    ConcurrencyProvider::Rayon => {
-                        Box::new(RayonScanner{method: scan_method.concurrency_method})
-                    },
-                    ConcurrencyProvider::StdThread => {
-                        unimplemented!()
-                    },
+            ConcurrencyMethod::Split => match scan_method.concurrency_provider {
+                ConcurrencyProvider::Rayon => Box::new(RayonScanner {
+                    method: scan_method.concurrency_method,
+                }),
+                ConcurrencyProvider::StdThread => {
+                    unimplemented!()
                 }
-            }
+            },
             ConcurrencyMethod::Chunk => {
                 unimplemented!()
             }
