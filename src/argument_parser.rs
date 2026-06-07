@@ -5,11 +5,11 @@ use std::sync::LazyLock;
 pub struct Arguments {
     #[arg(short, long, default_value = "false")]
     pub config: bool,
-    #[arg(short, long, default_value = "false")]
+    #[arg(long, default_value = "false")]
     pub debug: bool,
     #[arg(short, long, default_value = "false")]
     pub bypass_stdin_check: bool,
-    #[arg(short, long, action = clap::ArgAction::Set, default_value = "true")]
+    #[arg(long, action = clap::ArgAction::Set, default_value = "true")]
     pub stable: bool,
     #[arg(short, long, default_value = "false")]
     pub dedup: bool,
@@ -25,7 +25,7 @@ pub struct Arguments {
     pub suffix: String,
     #[arg(short, long, default_value = "split")]
     pub method: String,
-    #[arg(short, long, default_value = "rayon")]
+    #[arg(long, default_value = "rayon")]
     pub provider: String,
     // unnecessary because tty is different from stdin
     // #[arg(value_parser)]

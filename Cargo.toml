@@ -9,9 +9,6 @@ readme = "README.md"
 license = "MIT"
 publish = true
 
-[lints.clippy]
-unwrap_used = "deny"
-
 [dependencies]
 clap = { version = "4.6.1", features = ["derive"] }
 log = "0.4.32"
@@ -25,9 +22,10 @@ thiserror = "2.0.18"
 regex = "1.12.3"
 
 [profile.release]
-strip = true
+strip = false ## false this only when flamegraph needed / or profiling
 lto = "fat"
-opt-level = "z"
+opt-level = 3
 codegen-units = 1
 panic = "abort"
-debug = 0 ## true this only when flamegraph needed / or profiling
+debug = true ## true this only when flamegraph needed / or profiling
+split-debuginfo = "off" ## Comment if no flamegraph needed
