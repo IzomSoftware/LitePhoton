@@ -1,4 +1,5 @@
 # NOTE: a big update is incoming with performance/codebase/quality-of-life/standard improvements
+# A stable release would be published soon.
 # LitePhoton: a blazingly fast text file reader/scanner/deduplicator
 
 
