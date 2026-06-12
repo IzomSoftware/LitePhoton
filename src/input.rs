@@ -1,22 +1,21 @@
 use std::fs::{File, Metadata};
 use std::io::{self, BufReader, Read};
-use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
 
 use memmap2::Mmap;
 
 pub trait Input {
     fn open(&self) -> io::Result<File> {
-        Err(Error::from(ErrorKind::InvalidInput))
+        unimplemented!()
     }
     fn get_metadata(&self) -> io::Result<Metadata> {
-        Err(Error::from(ErrorKind::InvalidInput))
+        unimplemented!()
     }
     fn mmap(&self) -> io::Result<Mmap> {
-        Err(Error::from(ErrorKind::InvalidInput))
+        unimplemented!()
     }
     fn create_read_buf(&self) -> io::Result<BufReader<Box<dyn Read + Send>>>{
-        Err(Error::from(ErrorKind::InvalidInput))
+        unimplemented!()
     }
 }
 
@@ -51,6 +50,7 @@ impl Input for FileInput {
 pub struct InputBuilder;
 
 impl InputBuilder {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(input_type: InputType) -> Box<dyn Input + Sync> {
         match input_type {
             InputType::File(path) => Box::new(FileInput { path }),
