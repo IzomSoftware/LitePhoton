@@ -1,4 +1,5 @@
 # NOTE: a big update is incoming with performance/codebase/quality-of-life/standard improvements
+# A stable release would be published soon.
 # LitePhoton: a blazingly fast text file reader/scanner/deduplicator
 
 
@@ -81,6 +82,12 @@ Other arguments are:
 --dedup -> to dedup a file
 --stable -> to provide the stable functionality
 ```
+## 🚧 TODO  
+📌 **Rewrite the whole thing with Trait based inputs implementations** – ✅
+📌 **Rewrite the whole thing with Trait based matcher implementations** – ✅
+📌 **Rewrite the whole thing with Trait based Scanner implementation** – ✅
+📌 **implement remaining modes & use cases** – Ongoing maintenance
+
 ## A brief comparison
 # Test details
 - Debian 13
