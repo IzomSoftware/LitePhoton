@@ -9,7 +9,7 @@
 
 use std::{path::PathBuf, str::FromStr};
 
-use log::{error, info};
+use log::{info};
 
 use crate::{
     argument_parser::ARGUMENTS,
@@ -127,6 +127,9 @@ pub mod utils;
 //         }
 //     }
 // }
+// #[global_allocator]
+// static ALLOC: numalloc::NumaAlloc = numalloc::NumaAlloc::new();
+
 fn main() {
     let args = &*ARGUMENTS;
 

@@ -1,17 +1,14 @@
 use std::{
-    default,
-    io::{Read, Write},
+    io::{BufWriter, Read, Write},
     sync::{Arc, Mutex},
 };
 
 use rayon::iter::{ParallelBridge, ParallelIterator};
-use regex::bytes::Regex;
 use strum_macros::EnumString;
 
 use crate::{
-    input::{Input, InputType},
+    input::Input,
     matching::{MatchStrategyIterator, Matcher},
-    scan,
     utils::{
         self,
         stdout_util::{BufWriterImpl, create_stdout_buf_write},
@@ -32,6 +29,40 @@ pub enum ConcurrencyMethod {
     None,
     Split,
     Chunk,
+}
+pub enum Shared<W>
+where
+    W: Write + Send,
+{
+    Results(Arc<Mutex<Vec<String>>>),
+    Writer(Arc<Mutex<BufWriter<W>>>),
+}
+impl<W> Shared<W>
+where
+    W: Write + Send,
+{
+    pub fn push_or_write(&self, bytes: &[u8]) {
+        match self {
+            Shared::Results(results) => {
+                let mut lock = results.lock().unwrap();
+                lock.push(String::from_utf8_lossy(bytes).into());
+            }
+            Shared::Writer(writer) => {
+                let mut lock = writer.lock().unwrap();
+                lock.write_all_with_newline(bytes).unwrap();
+            }
+        }
+    }
+    pub fn get_results(&self) -> Option<Vec<String>> {
+        match self {
+            Shared::Results(results) => {
+                let lock = results.lock().unwrap();
+                let vec = lock.to_vec();
+                Some(vec)
+            }
+            Shared::Writer(_) => None,
+        }
+    }
 }
 pub struct ScanProperties<'a> {
     pub input: Box<dyn Input + Sync>,
@@ -158,8 +189,13 @@ impl Scanner for RayonScanner {
                 unimplemented!()
             }
             ConcurrencyMethod::Split => {
-                let results: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
                 let get = scan_properties.get;
+                let shared = if get {
+                    Shared::Results(Arc::new(Mutex::new(Vec::new())))
+                } else {
+                    Shared::Writer(Arc::new(Mutex::new(create_stdout_buf_write())))
+                };
+
                 let mmap = scan_properties.input.mmap().unwrap();
                 let mmap = &mmap[..];
 
@@ -174,24 +210,12 @@ impl Scanner for RayonScanner {
                     })
                     .for_each(|iter| {
                         let match_results = iter;
-                        if get {
-                            let mut lock = results.lock().unwrap();
-                            lock.extend(match_results.map(|b| String::from_utf8_lossy(b).into()));
-                        } else {
-                            for result in match_results {
-                                let mut writer = create_stdout_buf_write();
-                                writer.write_all_with_newline(result).unwrap()
-                            }
+                        for result in match_results {
+                            shared.push_or_write(result);
                         }
                     });
 
-                let lock = results.lock().unwrap();
-                if lock.is_empty() {
-                    None
-                } else {
-                    let vec = lock.to_vec();
-                    Some(vec)
-                }
+                    shared.get_results()
             }
             ConcurrencyMethod::Chunk => {
                 unimplemented!()
@@ -221,6 +245,7 @@ impl ScanMethod {
 }
 pub struct ScannerBuilder {}
 impl ScannerBuilder {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(scan_method: ScanMethod) -> Box<dyn Scanner> {
         match scan_method.concurrency_method {
             ConcurrencyMethod::None => Box::new(NoneScanner {}),

@@ -10,13 +10,8 @@ where
     W: Write + Send,
 {
     fn write_all_with_newline(&mut self, buf: &[u8]) -> io::Result<()> {
-        if let Err(err) = self.write_all(buf) {
-            return Err(err);
-        }
-        if let Err(err) = self.write_all(b"\n") {
-            return Err(err);
-        }
-        Ok(())
+        self.write_all(buf)?;
+        self.write_all(b"\n")
     }
 }
 

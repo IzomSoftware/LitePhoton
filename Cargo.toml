@@ -10,6 +10,7 @@ license = "MIT"
 publish = true
 
 [dependencies]
+numalloc = "0.1"
 clap = { version = "4.6.1", features = ["derive"] }
 log = "0.4.32"
 env_logger = "0.11.10"
@@ -22,10 +23,15 @@ thiserror = "2.0.18"
 regex = "1.12.3"
 
 [profile.release]
-strip = false ## false this only when flamegraph needed / or profiling
+strip = true
 lto = "fat"
 opt-level = 3
 codegen-units = 1
 panic = "abort"
+debug = false
+split-debuginfo = "true"
+
+[profile.dev]
+strip = false
 debug = true ## true this only when flamegraph needed / or profiling
 split-debuginfo = "off" ## Comment if no flamegraph needed
