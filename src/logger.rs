@@ -1,12 +1,11 @@
-use std::error;
-use std::io::Write;
 use env_logger::Target;
 use log::LevelFilter;
+use std::error;
+use std::io::Write;
 
 pub fn setup_logger(debug: bool) -> Result<(), Box<dyn error::Error>> {
     env_logger::Builder::new()
-        .filter_level(
-        if debug {
+        .filter_level(if debug {
             LevelFilter::Debug
         } else {
             LevelFilter::Error

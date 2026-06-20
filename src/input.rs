@@ -14,7 +14,7 @@ pub trait Input {
     fn mmap(&self) -> io::Result<Mmap> {
         unimplemented!()
     }
-    fn create_read_buf(&self) -> io::Result<BufReader<Box<dyn Read + Send>>>{
+    fn create_read_buf(&self) -> io::Result<BufReader<Box<dyn Read + Send>>> {
         unimplemented!()
     }
 }
@@ -27,7 +27,7 @@ pub struct StdinInput;
 
 impl Input for StdinInput {
     fn create_read_buf(&self) -> io::Result<BufReader<Box<dyn Read + Send>>> {
-        Ok(BufReader::with_capacity(64 * 1024,Box::new(io::stdin())))
+        Ok(BufReader::with_capacity(64 * 1024, Box::new(io::stdin())))
     }
 }
 
@@ -43,7 +43,7 @@ impl Input for FileInput {
         self.path.metadata()
     }
     fn mmap(&self) -> io::Result<Mmap> {
-        unsafe {memmap2::Mmap::map(&self.open()?)}
+        unsafe { memmap2::Mmap::map(&self.open()?) }
     }
 }
 

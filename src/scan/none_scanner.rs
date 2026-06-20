@@ -4,10 +4,9 @@ use std::{
 };
 
 use crate::{
-    matching::MatchStrategyIterator, scan::{Out, ScanProperties, Scanner}, utils::{
-        self,
-        stdout_util::create_stdout_buf_write,
-    }
+    matching::MatchStrategyIterator,
+    scan::{Out, ScanProperties, Scanner},
+    utils::{self, stdout_util::create_stdout_buf_write},
 };
 
 pub struct NoneScanner {}

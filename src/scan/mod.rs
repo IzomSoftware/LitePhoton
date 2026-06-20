@@ -5,7 +5,7 @@ use crate::{
     input::Input,
     matching::{MatchStrategyIterator, Matcher},
     scan::{none_scanner::NoneScanner, rayon_scanner::RayonScanner},
-    utils::stdout_util::{BufWriterImpl},
+    utils::stdout_util::BufWriterImpl,
 };
 use std::{
     io::{BufWriter, Write},

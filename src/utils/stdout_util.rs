@@ -3,7 +3,7 @@ use std::io::{self, BufWriter, Stdout, Write};
 use crate::utils;
 
 pub trait BufWriterImpl {
-    fn write_all_with_newline(&mut self, bytes: &[u8]) -> io::Result<()> ;
+    fn write_all_with_newline(&mut self, bytes: &[u8]) -> io::Result<()>;
 }
 impl<W> BufWriterImpl for BufWriter<W>
 where
