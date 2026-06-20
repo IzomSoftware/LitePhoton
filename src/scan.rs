@@ -30,24 +30,24 @@ pub enum ConcurrencyMethod {
     Split,
     Chunk,
 }
-pub enum Shared<W>
+pub enum Out<W>
 where
     W: Write + Send,
 {
     Results(Arc<Mutex<Vec<String>>>),
     Writer(Arc<Mutex<BufWriter<W>>>),
 }
-impl<W> Shared<W>
+impl<W> Out<W>
 where
     W: Write + Send,
 {
     pub fn push_or_write(&self, bytes: &[u8]) {
         match self {
-            Shared::Results(results) => {
+            Out::Results(results) => {
                 let mut lock = results.lock().unwrap();
                 lock.push(String::from_utf8_lossy(bytes).into());
             }
-            Shared::Writer(writer) => {
+            Out::Writer(writer) => {
                 let mut lock = writer.lock().unwrap();
                 lock.write_all_with_newline(bytes).unwrap();
             }
@@ -55,12 +55,12 @@ where
     }
     pub fn get_results(&self) -> Option<Vec<String>> {
         match self {
-            Shared::Results(results) => {
+            Out::Results(results) => {
                 let lock = results.lock().unwrap();
                 let vec = lock.to_vec();
                 Some(vec)
             }
-            Shared::Writer(_) => None,
+            Out::Writer(_) => None,
         }
     }
 }
@@ -91,11 +91,15 @@ impl Scanner for NoneScanner {
         scan_properties.matcher.best_match(line)
     }
     fn scan(&self, scan_properties: ScanProperties) -> Option<Vec<String>> {
-        let mut results: Vec<String> = vec![];
         let input = &scan_properties.input;
         let prefix = scan_properties.prefix;
         let suffix = scan_properties.suffix;
         let get = scan_properties.get;
+        let out = if get {
+            Out::Results(Arc::new(Mutex::new(Vec::new())))
+        } else {
+            Out::Writer(Arc::new(Mutex::new(create_stdout_buf_write())))
+        };
         let mut reader = input.create_read_buf().unwrap();
         let mut line_buf = utils::string_util::create_line_buf();
         let mut read_buf = utils::string_util::create_read_buf();
@@ -114,16 +118,8 @@ impl Scanner for NoneScanner {
                             .into_iter()
                             .flatten();
 
-                        if get {
-                            results
-                                .extend(match_results.map(|b| String::from_utf8_lossy(b).into()));
-                        } else {
-                            for result in match_results {
-                                let mut writer = utils::stdout_util::create_stdout_buf_write();
-                                if writer.write_all_with_newline(result).is_err() {
-                                    return None;
-                                }
-                            }
+                        for results in match_results {
+                            out.push_or_write(results);
                         }
                     }
 
@@ -142,17 +138,8 @@ impl Scanner for NoneScanner {
                                 .into_iter()
                                 .flatten();
 
-                            if get {
-                                results.extend(
-                                    match_results.map(|b| String::from_utf8_lossy(b).into()),
-                                );
-                            } else {
-                                for result in match_results {
-                                    let mut writer = utils::stdout_util::create_stdout_buf_write();
-                                    if writer.write_all_with_newline(result).is_err() {
-                                        return None;
-                                    }
-                                }
+                            for results in match_results {
+                                out.push_or_write(results);
                             }
                             begin = i + 1;
                         }
@@ -171,11 +158,8 @@ impl Scanner for NoneScanner {
                 Err(_) => break,
             }
         }
-        if get && !results.is_empty() {
-            Some(results)
-        } else {
-            None
-        }
+
+        out.get_results()
     }
 }
 
@@ -190,10 +174,10 @@ impl Scanner for RayonScanner {
             }
             ConcurrencyMethod::Split => {
                 let get = scan_properties.get;
-                let shared = if get {
-                    Shared::Results(Arc::new(Mutex::new(Vec::new())))
+                let out = if get {
+                    Out::Results(Arc::new(Mutex::new(Vec::new())))
                 } else {
-                    Shared::Writer(Arc::new(Mutex::new(create_stdout_buf_write())))
+                    Out::Writer(Arc::new(Mutex::new(create_stdout_buf_write())))
                 };
 
                 let mmap = scan_properties.input.mmap().unwrap();
@@ -211,11 +195,11 @@ impl Scanner for RayonScanner {
                     .for_each(|iter| {
                         let match_results = iter;
                         for result in match_results {
-                            shared.push_or_write(result);
+                            out.push_or_write(result);
                         }
                     });
 
-                    shared.get_results()
+                out.get_results()
             }
             ConcurrencyMethod::Chunk => {
                 unimplemented!()

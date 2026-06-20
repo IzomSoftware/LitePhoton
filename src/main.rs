@@ -34,16 +34,15 @@ fn main() {
     info!("Starting up LitePhoton with this environment: {:?}", args);
 
     let is_tty = !std::io::IsTerminal::is_terminal(&std::io::stdin()) && !args.bypass_stdin_check;
-    let input = if is_tty {
-        vec![InputBuilder::new(InputType::Stdin)]
+    let (method, input) = if is_tty {
+        (ConcurrencyMethod::None, vec![InputBuilder::new(InputType::Stdin)])
     } else {
         let mut inputs = vec![];
         for file in &args.file {
             inputs.push(InputBuilder::new(InputType::File(PathBuf::from(file))));
         }
-        inputs
+        (ConcurrencyMethod::from_str(&args.method).expect("main.rs: Unexpected method"), inputs)
     };
-    let method = ConcurrencyMethod::from_str(&args.method).expect("main.rs: Unexpected method");
     let provider =
         ConcurrencyProvider::from_str(&args.provider).expect("main.rs: Unexpected provider");
 
