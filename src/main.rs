@@ -1,30 +1,17 @@
-// use crate::{
-//     argument_parser::Arguments,
-//     common::{Method, Provider},
-//     environment::Environment,
-//     input::Input,
-// };
-// use log::info;
-// use std::{path::PathBuf, str::FromStr};
-
-use std::{path::PathBuf, str::FromStr};
-
-use log::{info};
-
+mod argument_parser;
+pub mod input;
+mod logger;
+pub mod matching;
+pub mod scan;
+pub mod utils;
 use crate::{
     argument_parser::ARGUMENTS,
     input::{InputBuilder, InputType},
     matching::Matcher,
     scan::{ConcurrencyMethod, ConcurrencyProvider, ScanMethod, ScanProperties, ScannerBuilder},
 };
-
-mod argument_parser;
-mod logger;
-pub mod input;
-pub mod matching;
-pub mod scan;
-pub mod utils;
-
+use log::info;
+use std::{path::PathBuf, str::FromStr};
 
 fn main() {
     let args = &*ARGUMENTS;
@@ -35,13 +22,19 @@ fn main() {
 
     let is_tty = !std::io::IsTerminal::is_terminal(&std::io::stdin()) && !args.bypass_stdin_check;
     let (method, input) = if is_tty {
-        (ConcurrencyMethod::None, vec![InputBuilder::new(InputType::Stdin)])
+        (
+            ConcurrencyMethod::None,
+            vec![InputBuilder::new(InputType::Stdin)],
+        )
     } else {
         let mut inputs = vec![];
         for file in &args.file {
             inputs.push(InputBuilder::new(InputType::File(PathBuf::from(file))));
         }
-        (ConcurrencyMethod::from_str(&args.method).expect("main.rs: Unexpected method"), inputs)
+        (
+            ConcurrencyMethod::from_str(&args.method).expect("main.rs: Unexpected method"),
+            inputs,
+        )
     };
     let provider =
         ConcurrencyProvider::from_str(&args.provider).expect("main.rs: Unexpected provider");
