@@ -87,7 +87,7 @@ impl<'a> Clone for ScanProperties<'a> {
             prefix: self.prefix,
             matcher: self.matcher.clone(),
             suffix: self.suffix,
-            get: self.get.clone(),
+            get: self.get,
         }
     }
 }
