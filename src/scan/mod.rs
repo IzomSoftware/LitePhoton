@@ -113,7 +113,7 @@ impl ScanMethod {
         }
     }
 }
-pub struct ScannerBuilder {}
+pub struct ScannerBuilder;
 impl ScannerBuilder {
     #[allow(clippy::new_ret_no_self)]
     pub fn new(scan_method: ScanMethod) -> Box<dyn Scanner> {

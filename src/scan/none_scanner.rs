@@ -8,7 +8,7 @@ use crate::{
     utils::{self, stdout_util::create_stdout_buf_write},
 };
 
-pub struct NoneScanner {}
+pub struct NoneScanner;
 impl Scanner for NoneScanner {
     fn scan(&self, scan_properties: ScanProperties) -> Option<Vec<String>> {
         let input = &scan_properties.input;
