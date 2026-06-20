@@ -35,6 +35,17 @@ where
     Results(Arc<Mutex<Vec<String>>>),
     Writer(Arc<Mutex<BufWriter<W>>>),
 }
+impl<W> Clone for Out<W>
+where
+    W: Write + Send,
+{
+    fn clone(&self) -> Self {
+        match self {
+            Self::Results(vec) => Out::Results(vec.clone()),
+            Self::Writer(writer) => Out::Writer(writer.clone()),
+        }
+    }
+}
 impl<W> Out<W>
 where
     W: Write + Send,
@@ -63,11 +74,22 @@ where
     }
 }
 pub struct ScanProperties<'a> {
-    pub input: Box<dyn Input + Sync>,
+    pub input: Box<dyn Input>,
     pub prefix: &'a [u8],
     pub matcher: Matcher,
     pub suffix: &'a [u8],
     pub get: bool,
+}
+impl<'a> Clone for ScanProperties<'a> {
+    fn clone(&self) -> Self {
+        ScanProperties {
+            input: self.input.clone(),
+            prefix: self.prefix,
+            matcher: self.matcher.clone(),
+            suffix: self.suffix,
+            get: self.get.clone(),
+        }
+    }
 }
 pub trait Scanner {
     fn match_line<'a>(
@@ -105,9 +127,14 @@ impl ScannerBuilder {
                     unimplemented!()
                 }
             },
-            ConcurrencyMethod::Chunk => {
-                unimplemented!()
-            }
+            ConcurrencyMethod::Chunk => match scan_method.concurrency_provider {
+                ConcurrencyProvider::Rayon => Box::new(RayonScanner {
+                    method: scan_method.concurrency_method,
+                }),
+                ConcurrencyProvider::StdThread => {
+                    unimplemented!()
+                }
+            },
         }
     }
 }

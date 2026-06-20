@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use memmap2::Mmap;
 
-pub trait Input {
+pub trait Input: Send + Sync {
     fn open(&self) -> io::Result<File> {
         unimplemented!()
     }
@@ -15,6 +15,9 @@ pub trait Input {
         unimplemented!()
     }
     fn create_read_buf(&self) -> io::Result<BufReader<Box<dyn Read + Send>>> {
+        unimplemented!()
+    }
+    fn clone(&self) -> Box<dyn Input> {
         unimplemented!()
     }
 }
@@ -28,6 +31,9 @@ pub struct StdinInput;
 impl Input for StdinInput {
     fn create_read_buf(&self) -> io::Result<BufReader<Box<dyn Read + Send>>> {
         Ok(BufReader::with_capacity(64 * 1024, Box::new(io::stdin())))
+    }
+    fn clone(&self) -> Box<dyn Input> {
+        Box::new(StdinInput {})
     }
 }
 
@@ -44,6 +50,11 @@ impl Input for FileInput {
     }
     fn mmap(&self) -> io::Result<Mmap> {
         unsafe { memmap2::Mmap::map(&self.open()?) }
+    }
+    fn clone(&self) -> Box<dyn Input> {
+        Box::new(FileInput {
+            path: self.path.clone(),
+        })
     }
 }
 

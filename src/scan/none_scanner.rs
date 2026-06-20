@@ -4,20 +4,12 @@ use std::{
 };
 
 use crate::{
-    matching::MatchStrategyIterator,
     scan::{Out, ScanProperties, Scanner},
     utils::{self, stdout_util::create_stdout_buf_write},
 };
 
 pub struct NoneScanner {}
 impl Scanner for NoneScanner {
-    fn match_line<'a>(
-        &self,
-        scan_properties: &'a ScanProperties<'a>,
-        line: &'a [u8],
-    ) -> Option<MatchStrategyIterator<'a>> {
-        scan_properties.matcher.best_match(line)
-    }
     fn scan(&self, scan_properties: ScanProperties) -> Option<Vec<String>> {
         let input = &scan_properties.input;
         let prefix = scan_properties.prefix;

@@ -13,6 +13,7 @@ impl<'a> Iterator for MatchStrategyIterator<'a> {
         }
     }
 }
+#[derive(Clone)]
 pub enum Matcher {
     Keyword(Vec<u8>),
     Regex(Regex),
